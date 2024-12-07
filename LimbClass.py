@@ -38,6 +38,8 @@ class LimbClass:
 
         self.root_joint =  get_loaded_text_field("txt_joint_root")
         self.limb_type = "biped" if radio_is_checked("rad_limb_biped") else "quadruped"
+
+        self.hierarchy = get_hierachy(self.root_joint)
         
         if self.limb_type == "biped":
             if  radio_is_checked("rad_limb_biped_arm"):
@@ -75,7 +77,7 @@ class LimbClass:
 
         self.limb_joint_number = 3 if radio_is_checked("rad_limb_biped") else 4
 
-        self.hierarchy = get_hierachy(self.root_joint)
+        
         
         self.joints_prefix = ["FK_", "IK_"]
 
