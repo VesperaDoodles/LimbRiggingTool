@@ -8,14 +8,14 @@ import importlib
 
 import UI
 importlib.reload(UI)
-import lib
-importlib.reload(lib)
+import library
+importlib.reload(library)
 import LimbClass
 importlib.reload(LimbClass)
 
 
 from UI import load_ui
-from lib import *
+from library import *
 
 import maya.cmds as cmds
 import functools

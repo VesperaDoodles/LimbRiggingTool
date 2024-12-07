@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 import functools
 from typing import *
-from lib import *
+from library import *
 
 myLimbObject = None
 myHandObject = None
