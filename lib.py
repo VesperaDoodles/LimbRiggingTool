@@ -478,12 +478,19 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl):
     )
     set_attr(condition_node, "operation", 2)
     set_attr(condition_node, "secondTerm", base_distance)
+
     # BlendColors Node
     cmds.connectAttr(
         condition_node + ".outColor.outColorR",
         "blendColors_stretch_" + suffix_name + ".color1.color1R",
         f=1,
     )
+
+    if not cmds.attributeQuery( "stretch", ex=True, n=switch_ctrl):
+
+        print("No Stretch Attribute found, creating one")
+        cmds.addAttr(switch_ctrl, ln="stretch", at="float", min=0, max=1, k=True)
+
     cmds.connectAttr(
         switch_ctrl + ".stretch",
         "blendColors_stretch_" + suffix_name + ".blender",

@@ -37,25 +37,18 @@ class LimbClass:
     def __init__(self):
 
         self.root_joint =  get_loaded_text_field("txt_joint_root")
-
-        root_parents = cmds.listRelatives(self.root_joint, p=True)
-        self.root_parent = root_parents[0]
-
-        self.switch = get_loaded_text_field("txt_controller_switch")
-        self.switch_attribute = ".switchFKIK"
-
-        self.limb_joint_number = 3 if radio_is_checked("rad_limb_biped") else 4
         self.limb_type = "biped" if radio_is_checked("rad_limb_biped") else "quadruped"
-
         
-
         if self.limb_type == "biped":
             if  radio_is_checked("rad_limb_biped_arm"):
                 self.limb_name = "arm" 
             else : 
-                self.limb_name ="leg"
-                self.limb_joint_number = 5
 
+                if cmds.objExists(self.hierarchy[4]): # Check if a foot is included 
+                    self.limb_joint_number = 5
+
+                self.limb_name ="leg"
+                
         else:
             self.limb_name = "front" if radio_is_checked("rad_limb_quadruped_front") else "rear"
         
@@ -63,7 +56,27 @@ class LimbClass:
 
         self.suffix_name = self.limb_name + "_" + self.side
 
+        root_parents:List[str] = cmds.listRelatives(self.root_joint, p=True)
+
+        if root_parents == None:
+            group = cmds.group(n="grp_rig_"+ self.suffix_name, em=True)
+            cmds.parent(self.root_joint, group)
+            root_parents = [group]
+
+        self.root_parent = root_parents[0]
+
+        self.switch = get_loaded_text_field("txt_controller_switch")
+        self.switch_attribute = ".switchFKIK"
+
+        if not cmds.attributeQuery( "switchFKIK", ex=True, n=self.switch):
+
+            print("No Switch Attribute found, creating one")
+            cmds.addAttr(self.switch, ln="switchFKIK", at="float", min=0, max=1, k=True)
+
+        self.limb_joint_number = 3 if radio_is_checked("rad_limb_biped") else 4
+
         self.hierarchy = get_hierachy(self.root_joint)
+        
         self.joints_prefix = ["FK_", "IK_"]
 
         if is_checked("ckb_limb_stretch"):
