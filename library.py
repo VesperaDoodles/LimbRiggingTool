@@ -289,7 +289,7 @@ def constraint(
 
     return constraint_name
 
-def create_control_fk(jnt: str, side: str, radius: int = 2):
+def create_control_fk(jnt: str, side: str, radius: int = 8):
 
     # Creates a FK controler and an offset group to a joint
     ctrl = cmds.circle(
@@ -393,14 +393,18 @@ def parent_control_fk(joints_list: List[str], index: int):
     else:
         return offset
     
-def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl):
+def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, is_biped=True):
     # Setup Stretch
 
     # Set up a measure distance node
 
-    # Start Point is the root joint, end point the last joint in the hierachy
+    # Start Point is the root joint, end point the third joint in the hierachy
     start_point = cmds.xform(joint_root, query=True, translation=True, ws=True)
-    end_point = cmds.xform(joint_hierarchy[-1], query=True, translation=True, ws=True)
+    if is_biped:
+        last_joint_index =2
+    else:
+        last_joint_index= 3
+    end_point = cmds.xform(joint_hierarchy[last_joint_index], query=True, translation=True, ws=True)
     distance_node = cmds.distanceDimension(sp=start_point, ep=end_point)
 
     cmds.select(distance_node.replace("Shape", ""))
@@ -502,10 +506,12 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl):
 
     for jnt in joint_hierarchy:
         
-        if not jnt == joint_hierarchy[-1]:
+        if not jnt == joint_hierarchy[last_joint_index]:
             cmds.connectAttr(
                 "blendColors_stretch_" + suffix_name + ".output.outputR",
                 jnt + ".scaleX", f=1)
+        else:
+            break
 
     set_attr(distance_node, "visibility", 0)
 

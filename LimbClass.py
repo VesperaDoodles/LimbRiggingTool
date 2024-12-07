@@ -168,9 +168,6 @@ class LimbClass:
             cmds.connectAttr(
                 (self.switch + self.switch_attribute), ("pairBlend_" + jnt + ".weight"), f=1
             )
-
-    def add_stretch(self):
-        print()
         
     def biped_rig(self):
 
@@ -186,7 +183,7 @@ class LimbClass:
 
             # Creation of FK controllers
             tempJoint = self.hierarchy[i].replace("SK_JNT", "")
-            create_control_fk(self.hierarchy[i], self.side, 1)
+            create_control_fk(self.hierarchy[i], self.side, 8)
             tempctrl = parent_control_fk(self.hierarchy, i)
             if i == 0:
                 cmds.parent(tempctrl, rig_group)
@@ -251,7 +248,8 @@ class LimbClass:
             (self.suffix_name + "_fkik_reverse.outputX"), (self.pole_control + ".visibility"), f=1)
         
         if is_checked("ckb_limb_stretch"):
-            stretch(self.root_joint, self.hierarchy, self.suffix_name, self.ik_control, self.switch)
+            is_biped = True if self.limb_type == "biped" else False
+            stretch(self.root_joint, self.hierarchy, self.suffix_name, self.ik_control, self.switch,is_biped )
 
         # Adds the unbreakable knee setup
 
@@ -283,14 +281,17 @@ class HandClass:
 
         fingers_list = ["index", "middle", "ring", "pinkie"]
 
-        root_phalanges = cmds.group("grp_hand_"+ self.side,em=1)
+        root_phalanges = cmds.group(n="grp_rig_hand_"+ self.side,em=1)
+
+        # Parent Hand Group
+        cmds.matchTransform(root_phalanges, self.wrist_joint, pos=True)
+        cmds.parentConstraint(self.wrist_joint, root_phalanges,w=1, )
 
         for finger in fingers_list:
 
             for i in range(1,4):
 
                 phalange = f"SK_JNT_{finger}_0{i}_{self.side}"
-                print(phalange)
 
                 ctrl = phalange.replace("SK_JNT", "CTRL_FK")
                 create_control_fk(phalange, self.side, 2)
@@ -341,6 +342,8 @@ class HandClass:
 
             previous_ctrl = ctrl
         self.add_custom_attributes()
+
+        
 
 def duplicate_hierarchies_callback(*args):
     getLimbObject().duplicate_hierarchy()
