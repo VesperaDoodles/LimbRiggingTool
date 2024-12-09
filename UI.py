@@ -131,11 +131,26 @@ def add_ui(parent_layout:str):
     cmds.checkBox("ckb_better_pole", l="Better pole vector", parent=parent_layout)
     cmds.button("btn_limb_controls", l="Add Controllers",parent=parent_layout, command = add_controls_callback)
 
+    reverse_foot ="reverse_foot_layout"
+    cmds.rowLayout(reverse_foot, p=parent_layout, vis=False)
+
+    cmds.textFieldButtonGrp(
+        "txt_foot_root",
+        parent=reverse_foot,
+        eb=True,
+        pht="Reverse Foot Root",
+        bl="Load",
+        ad2=1,
+        bc=functools.partial(load_textfield_callback, "txt_foot_root"))
+    
+    cmds.radioButton("rad_limb_biped_leg",e=True, onc=functools.partial(toggle_visibility_callback,reverse_foot))
+    cmds.radioButton("rad_limb_biped_leg",e=True, ofc=functools.partial(toggle_invisibility_callback,reverse_foot))
+
     biped_options ="biped_command_layout"
     cmds.rowLayout(biped_options, nc=2,ad2=2, parent=parent_layout)
 
     cmds.button("btn_limb_hand", l="Add FK Hand",parent=biped_options,w=140 ,command = add_hand_controls_callback)
-    cmds.button("btn_limb_foot_roll", l="Add IK foot roll",parent=biped_options, command = print)
+    cmds.button("btn_limb_foot_roll", l="Add IK foot roll",parent=biped_options, command = add_foot_roll_callback)
 
-    cmds.button("btn_limb_ribbon", l="Add Ribbon to Limb",parent=parent_layout, command = print)
+    cmds.button("btn_limb_ribbon", l="Add Ribbon to Limb",parent=parent_layout, command = print,en=False)
 

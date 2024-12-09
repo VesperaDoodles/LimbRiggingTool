@@ -213,7 +213,7 @@ def get_selection(typ:Optional[str]=None):
     return selection
 
 def get_loaded_text_field(name:str):
-    return cmds.textFieldButtonGrp(name, q=True, tx=True)
+    return str(cmds.textFieldButtonGrp(name, q=True, tx=True))
 
 def is_checked(name: str):
     return bool(cmds.checkBox((name), query=True, value=True))
@@ -227,7 +227,7 @@ def get_chosen_option(name:str):
 
 def get_hierachy(root_joint:str):
 
-    joint_hierarchy = cmds.listRelatives(root_joint, ad=1)
+    joint_hierarchy:List[str] = cmds.listRelatives(root_joint, ad=1)
     joint_hierarchy.append(root_joint)
     joint_hierarchy.reverse()
 
@@ -404,6 +404,7 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, i
         last_joint_index =2
     else:
         last_joint_index= 3
+
     end_point = cmds.xform(joint_hierarchy[last_joint_index], query=True, translation=True, ws=True)
     distance_node = cmds.distanceDimension(sp=start_point, ep=end_point)
 
@@ -413,7 +414,7 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, i
 
     cmds.select(cl=1)
 
-    # Rename the newly created locators and renmae them
+    # Rename the newly created locators and rename them
     if cmds.objExists("locator1"):
         set_attr("locator1", "visibility", 0)
         if cmds.xform("locator1", query=True, translation=True, ws=True) == end_point:

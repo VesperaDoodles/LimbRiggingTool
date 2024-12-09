@@ -40,6 +40,8 @@ class LimbClass:
         self.limb_type = "biped" if radio_is_checked("rad_limb_biped") else "quadruped"
 
         self.hierarchy = get_hierachy(self.root_joint)
+
+        self.limb_joint_number = 3 if radio_is_checked("rad_limb_biped") else 4
         
         if self.limb_type == "biped":
             if  radio_is_checked("rad_limb_biped_arm"):
@@ -48,6 +50,7 @@ class LimbClass:
 
                 if cmds.objExists(self.hierarchy[4]): # Check if a foot is included 
                     self.limb_joint_number = 5
+                    print("Foot")
 
                 self.limb_name ="leg"
                 
@@ -75,10 +78,6 @@ class LimbClass:
             print("No Switch Attribute found, creating one")
             cmds.addAttr(self.switch, ln="switchFKIK", at="float", min=0, max=1, k=True)
 
-        self.limb_joint_number = 3 if radio_is_checked("rad_limb_biped") else 4
-
-        
-        
         self.joints_prefix = ["FK_", "IK_"]
 
         if is_checked("ckb_limb_stretch"):
@@ -179,6 +178,10 @@ class LimbClass:
         # Setup FK
 
         # Connect FK controls to new joints
+
+        if self.limb_type == "biped" and radio_is_checked("rad_limb_biped_leg"):
+            self.limb_joint_number = 4
+
         for i in range(self.limb_joint_number):
 
             # Creation of FK controllers
@@ -205,17 +208,17 @@ class LimbClass:
 
         # Create the main IK Handle from root to end joint (hip/shoulder > ankle wrist)
         cmds.ikHandle(
-            n=("IKHandle_" + self.suffix_name),
+            n=("IkHandle_" + self.suffix_name),
             sol="ikRPsolver",
             sj=(self.hierarchy[0].replace("SK", "IK")),
             ee=((self.hierarchy[2].replace("SK", "IK"))),
         )
-        set_attr("IKHandle_" + self.suffix_name, "visibility", 0)
+        set_attr("IkHandle_" + self.suffix_name, "visibility", 0)
 
         # Parent the IK handle to the group to the end control
-        cmds.parent(("IKHandle_" + self.suffix_name), self.ik_control)
+        cmds.parent(("IkHandle_" + self.suffix_name), self.ik_control)
 
-        cmds.poleVectorConstraint(self.pole_control, ("IKHandle_" + self.suffix_name), w=1)
+        cmds.poleVectorConstraint(self.pole_control, ("IkHandle_" + self.suffix_name), w=1)
         constraint(
             self.ik_control,
             self.hierarchy[2].replace("SK", "IK"),
@@ -253,8 +256,45 @@ class LimbClass:
 
         # Adds the unbreakable knee setup
 
-        if self.limb_name == "leg":
+        cmds.select(cl=1)
+
+        if self.limb_name == "leg" and is_checked("ckb_better_pole"):
             add_unbreakable_knees(self.pole_control, self.hierarchy, self.root_parent)
+
+    def foot_roll(self):
+
+        heel_joint= get_loaded_text_field("txt_foot_root")
+
+        foot_hierarchy = get_hierachy(heel_joint)
+
+        if len(foot_hierarchy)<4:
+            error_msg("The reverse foot hierarchy must contain 4 joints : heel, toe, ball and ankle.")
+
+       
+        cmds.ikHandle(
+            n=("IkHandle_ball_" + self.side),
+            sol="ikSCsolver",
+            sj=(self.hierarchy[2].replace("SK", "IK")),
+            ee=((self.hierarchy[3].replace("SK", "IK"))),
+        )
+        set_attr("IkHandle_ball_" + self.side, "visibility", 0)
+
+        cmds.ikHandle(
+            n=("IkHandle_toe_" + self.side),
+            sol="ikSCsolver",
+            sj=(self.hierarchy[3].replace("SK", "IK")),
+            ee=((self.hierarchy[4].replace("SK", "IK")))
+        )
+        set_attr("IkHandle_toe_"+ self.side, "visibility", 0)
+
+
+        cmds.parent("IkHandle_ball_" + self.side, foot_hierarchy[2])
+        cmds.parent("IkHandle_toe_" + self.side, foot_hierarchy[1])
+
+        cmds.parent("IkHandle_" + self.suffix_name, foot_hierarchy[-1])
+
+        cmds.parent(heel_joint, self.ik_control)
+
 
 
 class HandClass:
@@ -343,8 +383,6 @@ class HandClass:
             previous_ctrl = ctrl
         self.add_custom_attributes()
 
-        
-
 def duplicate_hierarchies_callback(*args):
     getLimbObject().duplicate_hierarchy()
 
@@ -360,3 +398,6 @@ def add_controls_callback(*args):
 
 def add_hand_controls_callback(*args):
     getHandObject().add_fingers_controls()
+
+def add_foot_roll_callback(*args):
+    getLimbObject().foot_roll()
