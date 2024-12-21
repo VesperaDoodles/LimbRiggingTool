@@ -225,6 +225,9 @@ def get_chosen_option(name:str):
     print(cmds.optionMenu((name), query=True, v=True))
     return cmds.optionMenu((name), query=True, v=True)
 
+def get_slider_field(name:str):
+    return float(cmds.floatSliderGrp(name, query=True, v=True))
+
 def get_hierachy(root_joint:str):
 
     joint_hierarchy:List[str] = cmds.listRelatives(root_joint, ad=1)

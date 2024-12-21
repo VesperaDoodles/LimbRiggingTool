@@ -149,8 +149,41 @@ def add_ui(parent_layout:str):
     biped_options ="biped_command_layout"
     cmds.rowLayout(biped_options, nc=2,ad2=2, parent=parent_layout)
 
-    cmds.button("btn_limb_hand", l="Add FK Hand",parent=biped_options,w=140 ,command = add_hand_controls_callback)
+    cmds.button("btn_limb_hand", l="Add FK Hand",parent=biped_options,w=140 ,command = hand_attr_value_window)
     cmds.button("btn_limb_foot_roll", l="Add IK foot roll",parent=biped_options, command = add_foot_roll_callback)
 
     cmds.button("btn_limb_ribbon", l="Add Ribbon to Limb",parent=parent_layout, command = print,en=False)
 
+def hand_attr_value_window(*args):
+
+    window_name = "UpdateAttibutes"
+
+    # If the window exists, delete it
+    if cmds.window(window_name, query=True, exists=True):
+        cmds.deleteUI(window_name, window=True)
+        print("Previous Window deleted")
+
+    # Creates a window that fits around its children
+    cmds.window(
+        window_name,
+        title=window_name,
+        sizeable=False, rtf=True)
+
+    # Use a colomn Layout
+    parent_layout = cmds.columnLayout(
+        adjustableColumn=True, rowSpacing=5
+    )
+
+    cmds.floatSliderGrp("sld_curl", l="Curl Multiplier", p=parent_layout, s=5, f=True, v=1)
+    cmds.floatSliderGrp("sld_spread", l="Spread Multiplier", p=parent_layout, s=5, f=True,v=1)
+    cmds.floatSliderGrp("sld_orient", l="Oriuent Multiplier", p=parent_layout, s=5, f=True,v=1)
+
+    cmds.button("btn_OK", l="Update Values", parent=parent_layout, c=update_values_attributes_callback)
+
+    # Parent the window to the main maya window
+    cmds.setParent("..")
+
+    add_hand_controls_callback()
+
+    # Show the window
+    cmds.showWindow(window_name)

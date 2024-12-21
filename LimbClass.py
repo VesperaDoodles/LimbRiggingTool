@@ -314,9 +314,91 @@ class HandClass:
 
     def add_custom_attributes(self):
 
-        cmds.addAttr(self.switch, ln="FingersOptions", at="enum", en= "------------",k=True )
+        fingers_list = ["index", "middle", "ring", "pinkie"]
 
-    
+        if not cmds.attributeQuery("FingersOptions", ex=True, n=self.switch):
+            cmds.addAttr(self.switch, ln="FingersOptions", at="enum", en= "------------",k=True )
+
+        spread_attr = f"Spread"
+        orient_attr= "Orient"
+        cmds.addAttr(self.switch, ln=spread_attr, at="float", min=-5, max=5, dv=0, k=True)
+        cmds.addAttr(self.switch, ln=orient_attr, at="float", min=-5, max=5, dv=0, k=True)
+        
+        for finger in fingers_list:
+
+            curl_attr = f"Curl{finger.capitalize()}"
+
+            cmds.addAttr(self.switch, ln=curl_attr, at="float", min=-5, max=5, dv=0, k=True)
+
+            float_math_node  = cmds.shadingNode("floatMath", n= f"floatMath_{finger}_curl", au=True)
+
+            set_attr(float_math_node, "operation", 2)            
+
+            float_math_node_spread  = cmds.shadingNode("floatMath", n= f"floatMath_{finger}_spread", au=True)
+            float_math_node_orient  = cmds.shadingNode("floatMath", n= f"floatMath_{finger}_orient", au=True)
+        
+            set_attr(float_math_node_spread, "operation", 2)
+            set_attr(float_math_node_orient, "operation", 2)
+
+            if finger == "index":
+                mult_value = 2
+            elif finger == "middle":
+                mult_value=0
+            elif finger == "ring":
+                mult_value = -2
+            else :
+                mult_value = -3
+
+            set_attr(float_math_node_spread, "floatB", mult_value)
+            set_attr(float_math_node_orient, "floatB", mult_value)
+            
+            for i in range(1,4):
+
+                grp_curl_spread = f"GRP1_{finger}_0{i}_{self.side}"
+                grp_orient = f"GRP2_{finger}_0{i}_{self.side}"
+
+                connect_attr(self.switch, curl_attr, float_math_node, "floatA")
+                connect_attr(float_math_node, "outFloat", grp_curl_spread, "rotateZ")
+
+                if i ==1 :
+
+                    connect_attr(self.switch, spread_attr, float_math_node_spread, "floatA")
+                    connect_attr(float_math_node_spread, "outFloat", grp_curl_spread, "rotateY")
+
+                    connect_attr(self.switch, orient_attr, float_math_node_orient, "floatA")
+                    connect_attr(float_math_node_orient, "outFloat", grp_orient, "rotateZ")
+
+    def update_values(self):
+
+        curl_nodes = []
+        orient_nodes = []
+        spread_nodes = []
+
+        spread_mult = get_slider_field("sld_spread")
+        curl_mult = get_slider_field("sld_curl")
+        orient_mult = get_slider_field("sld_orient")
+
+        for finger in ["index", "middle", "ring", "pinkie"]:
+
+            curl_nodes.append(f"floatMath_{finger}_curl")
+            orient_nodes.append(f"floatMath_{finger}_orient")
+            spread_nodes.append(f"floatMath_{finger}_spread")
+
+            set_attr(f"floatMath_{finger}_curl", "floatB", curl_mult)
+
+            if finger == "index":
+                mult_value = 2
+            elif finger == "middle":
+                mult_value=0
+            elif finger == "ring":
+                mult_value = -2
+            else :
+                mult_value = -3
+
+            set_attr(f"floatMath_{finger}_spread", "floatB", spread_mult*mult_value)
+            set_attr(f"floatMath_{finger}_orient", "floatB", orient_mult*mult_value)
+
+
     def add_fingers_controls(self):
 
         fingers_list = ["index", "middle", "ring", "pinkie"]
@@ -353,6 +435,7 @@ class HandClass:
                 previous_ctrl = ctrl
 
         finger = "thumb"
+
         for i in range(0,3):
                 
             if i == 0:
@@ -360,19 +443,17 @@ class HandClass:
             else:
                 phalange = f"SK_JNT_{finger}_0{i}_{self.side}"
                 
-            print(phalange)
 
             ctrl = phalange.replace("SK_JNT", "CTRL_FK")
 
             create_control_fk(phalange, self.side, 2)
 
             # Creates group for customs attibutes
-            
+            print("Was Here", finger, i)
             grp1 = cmds.group(ctrl,name=phalange.replace("SK_JNT", "GRP1"))
             grp2 = cmds.group(grp1,name=phalange.replace("SK_JNT", "GRP2"))
 
             # Creation of Constraints
-
             if i == 0 :
                 cmds.parentConstraint(ctrl, phalange, w=1, mo=1)
                 cmds.parent(f"offset_FK_meta_{finger}_{self.side}", root_phalanges)
@@ -381,6 +462,8 @@ class HandClass:
                 cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", previous_ctrl)
 
             previous_ctrl = ctrl
+        
+        
         self.add_custom_attributes()
 
 def duplicate_hierarchies_callback(*args):
@@ -401,3 +484,6 @@ def add_hand_controls_callback(*args):
 
 def add_foot_roll_callback(*args):
     getLimbObject().foot_roll()
+
+def update_values_attributes_callback(*args):
+     getHandObject().update_values()
