@@ -1,9 +1,10 @@
 import maya.cmds as cmds
+import maya.api.OpenMaya as om
 import functools
 from typing import *
 
 
-controllers_library: Dict[str, List[Tuple[float,float,float]]] = {
+controllers_library: Dict[str, List[Tuple[float, float, float]]] = {
     "square": [(1, 1, 0), (-1, 1, 0), (-1, -1, 0), (1, -1, 0), (1, 1, 0)],
     "triangle": [(1, -1, 0), (-1, -1, 0), (0, 1, 0), (1, -1, 0)],
     "cross": [
@@ -57,14 +58,14 @@ controllers_library: Dict[str, List[Tuple[float,float,float]]] = {
         (0.0, 1.0, 0.0),
     ],
     "pole": [
-    (0.0, 0.0, 1.2),
-    (0.0, -1.2, -1.2),
-    (0.0, 1.2, -1.2),
-    (0.0, 0.0, 1.2),
-    (-1.2, 0.0, -1.2),
-    (1.2, 0.0, -1.2),
-    (0.0, 0.0, 1.2)
-],
+        (0.0, 0.0, 1.2),
+        (0.0, -1.2, -1.2),
+        (0.0, 1.2, -1.2),
+        (0.0, 0.0, 1.2),
+        (-1.2, 0.0, -1.2),
+        (1.2, 0.0, -1.2),
+        (0.0, 0.0, 1.2),
+    ],
     "arrow": [
         (0.3, 0, 0),
         (-0.3, 0, 0),
@@ -196,53 +197,76 @@ controllers_library: Dict[str, List[Tuple[float,float,float]]] = {
         (-0.4418, 0.7341, 0.0),
         (-0.2066, 0.8315, 0.0),
         (-0.1033, 1.0115, 0.0),
-    ]
+    ],
 }
+
 
 def error_msg(message) -> NoReturn:
     cmds.error(message)
     raise Exception("Should Never Happend")
 
-def get_selection(typ:Optional[str]=None):
+
+def get_selection(typ: Optional[str] = None):
 
     if typ == None:
-        selection:List[str] = cmds.ls(selection=True)
+        selection: List[str] = cmds.ls(selection=True)
     else:
-        selection:List[str] = cmds.ls(selection=True, typ=typ)
-        
+        selection: List[str] = cmds.ls(selection=True, typ=typ)
+
     return selection
 
-def get_loaded_text_field(name:str):
+
+def get_loaded_text_field(name: str):
     return str(cmds.textFieldButtonGrp(name, q=True, tx=True))
+
 
 def is_checked(name: str):
     return bool(cmds.checkBox((name), query=True, value=True))
 
+
 def radio_is_checked(name: str):
     return bool(cmds.radioButton((name), query=True, select=True))
 
-def get_chosen_option(name:str):
-    print(cmds.optionMenu((name), query=True, v=True))
+
+def get_chosen_option(name: str):
     return cmds.optionMenu((name), query=True, v=True)
 
-def get_slider_field(name:str):
+
+def get_slider_field(name: str):
     return float(cmds.floatSliderGrp(name, query=True, v=True))
 
-def get_hierachy(root_joint:str):
 
-    joint_hierarchy:List[str] = cmds.listRelatives(root_joint, ad=1)
+def get_hierachy(root_joint: str):
+
+    joint_hierarchy: List[str] = cmds.listRelatives(root_joint, ad=1)
     joint_hierarchy.append(root_joint)
     joint_hierarchy.reverse()
 
     return joint_hierarchy
 
+
 def set_attr(obj: str, attr: str, *values, **kwargs):
     cmds.setAttr(f"{obj}.{attr}", *values, **kwargs)
+
 
 def set_appearance(obj: str, red: float, green: float, blue: float):
     set_attr(obj, "overrideEnabled", 1)
     set_attr(obj, "overrideRGBColors", 1)
     set_attr(obj, "overrideColorRGB", red, green, blue)
+
+
+def unlock_transforms(object:str):
+
+    for attr in ['translate', 'rotate', 'scale']:
+        for axis in 'XYZ':
+            attr_name = f"{object}.{attr}{axis}"
+            
+            # Unlock the attribute
+            if cmds.getAttr(attr_name, lock=True):
+                cmds.setAttr(attr_name, lock=False)
+            # Ensure it is keyable
+            cmds.setAttr(attr_name, keyable=True)
+
 
 def connect_attr(input_obj: str, input_attr: str, output_obj: str, output_attr: str):
 
@@ -250,14 +274,16 @@ def connect_attr(input_obj: str, input_attr: str, output_obj: str, output_attr: 
         f"{input_obj}.{input_attr}", f"{output_obj}.{output_attr}", force=1
     )
 
-def set_lineWidth(curve: str, width: float = 2, isShape:Optional[bool] = False):
+
+def set_lineWidth(curve: str, width: float = 2, isShape: Optional[bool] = False):
 
     if isShape or "Shape" in curve:
-         cmds.setAttr(f"{curve}" + ".lineWidth", width, edit=True)
+        cmds.setAttr(f"{curve}" + ".lineWidth", width, edit=True)
     else:
         curve = curve.split("|")[-1]
         shape = "|" + cmds.listRelatives(curve, shapes=True)[0]
-        cmds.setAttr(f"{curve}{shape}" + ".lineWidth", width, edit=True) 
+        cmds.setAttr(f"{curve}{shape}" + ".lineWidth", width, edit=True)
+
 
 def constraint(
     parent_obj: str,
@@ -292,6 +318,7 @@ def constraint(
 
     return constraint_name
 
+
 def create_control_fk(jnt: str, side: str, radius: int = 8):
 
     # Creates a FK controler and an offset group to a joint
@@ -308,7 +335,7 @@ def create_control_fk(jnt: str, side: str, radius: int = 8):
 
     # Creation of offset group
     offset = cmds.group(ctrl, n=jnt.replace("SK_JNT", "offset_FK"))
-    
+
     # Modification of controlers appearance
     set_lineWidth(ctrl[0], 2)
 
@@ -322,12 +349,47 @@ def create_control_fk(jnt: str, side: str, radius: int = 8):
 
     cmds.matchTransform(offset, jnt)
 
+
+def calculate_pole_vector_position(
+    shoulder_joint: str, elbow_joint: str, wrist_joint: str, offset: float = 20.0
+):
+    """
+    Calculate the ideal position for a pole vector controller.
+
+    Args:
+        shoulder_joint (str): Name of the shoulder joint.
+        elbow_joint (str): Name of the elbow joint.
+        wrist_joint (str): Name of the wrist joint.
+        offset (float): Distance to offset the pole vector along the calculated normal.
+
+    Returns:
+        tuple: World-space position of the pole vector.
+    """
+
+    shoulder_pos = om.MVector(cmds.xform(shoulder_joint, q=True, ws=True, t=True))
+    elbow_pos = om.MVector(cmds.xform(elbow_joint, q=True, ws=True, t=True))
+    wrist_pos = om.MVector(cmds.xform(wrist_joint, q=True, ws=True, t=True))
+
+    # Calculate midpoint
+    midpoint = (shoulder_pos + wrist_pos) * 0.5
+
+    # Vector from midpoint to elbow
+    mid_to_elbow = (elbow_pos - midpoint).normal()
+
+    # Offset along this direction
+    pole_vector_pos = elbow_pos + (mid_to_elbow * offset)
+    return (pole_vector_pos.x, pole_vector_pos.y, pole_vector_pos.z)
+
+
 def create_control_ik(
     joint_hierarchy: List[str],
     end_joint: str,
     side: str,
     end_control: str,
-    pole_control: str, hock_control:Optional[str] = None, is_quad:Optional[bool] = False):
+    pole_control: str,
+    hock_control: Optional[str] = None,
+    is_quad: Optional[bool] = False,
+):
 
     end = cmds.curve(
         d=1,
@@ -341,10 +403,9 @@ def create_control_ik(
         d=1,
         p=controllers_library["joint"],
         k=list(range(len((controllers_library["joint"])))),
-        n=pole_control
+        n=pole_control,
     )
     shape_pole = cmds.listRelatives(pole, shapes=True)[0]
-
 
     # Colors according to chart
     colors = {"L": (0, 0.6, 1), "R": (1, 0, 0)}
@@ -364,10 +425,12 @@ def create_control_ik(
 
         hock_joint = cmds.listRelatives(end_joint, p=True)
 
-        hock = cmds.curve(d=1,
-        p=controllers_library["box"],
-        k=list(range(len((controllers_library["box"])))),
-        n=hock_control)
+        hock = cmds.curve(
+            d=1,
+            p=controllers_library["box"],
+            k=list(range(len((controllers_library["box"])))),
+            n=hock_control,
+        )
         shape_hock = cmds.listRelatives(hock, shapes=True)[0]
 
         set_appearance(shape_hock, color[0], color[1], color[2])
@@ -376,14 +439,19 @@ def create_control_ik(
         offset_hock = cmds.group(hock, n=hock.replace("CTRL", "offset"))
         cmds.matchTransform(offset_hock, hock_joint, px=1, py=1, pz=1, rx=0, ry=0, rz=0)
 
-
     # Creation of offset groups
     offset_end = cmds.group(end, n=end_control.replace("CTRL", "offset"))
-    cmds.matchTransform(offset_end, end_joint, px=1, py=1, pz=1, rx=0, ry=0, rz=0)
+    cmds.matchTransform(offset_end, end_joint, pos=True, rot=True, piv=True)
 
     offset_pole = cmds.group(pole, n=pole_control.replace("CTRL", "offset"))
-    cmds.matchTransform(
-        offset_pole, joint_hierarchy[1], px=1, py=1, pz=1, rx=0, ry=0, rz=0)
+    position = calculate_pole_vector_position(
+        joint_hierarchy[0], joint_hierarchy[1], joint_hierarchy[2]
+    )
+
+    cmds.setAttr(offset_pole + ".translateX", position[0])
+    cmds.setAttr(offset_pole + ".translateY", position[1])
+    cmds.setAttr(offset_pole + ".translateZ", position[2])
+
 
 def parent_control_fk(joints_list: List[str], index: int):
 
@@ -395,8 +463,11 @@ def parent_control_fk(joints_list: List[str], index: int):
         cmds.parent(offset, ctrl_parent)
     else:
         return offset
-    
-def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, is_biped=True):
+
+
+def stretch(
+    joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, is_biped=True
+):
     # Setup Stretch
 
     # Set up a measure distance node
@@ -404,11 +475,13 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, i
     # Start Point is the root joint, end point the third joint in the hierachy
     start_point = cmds.xform(joint_root, query=True, translation=True, ws=True)
     if is_biped:
-        last_joint_index =2
+        last_joint_index = 2
     else:
-        last_joint_index= 3
+        last_joint_index = 3
 
-    end_point = cmds.xform(joint_hierarchy[last_joint_index], query=True, translation=True, ws=True)
+    end_point = cmds.xform(
+        joint_hierarchy[last_joint_index], query=True, translation=True, ws=True
+    )
     distance_node = cmds.distanceDimension(sp=start_point, ep=end_point)
 
     cmds.select(distance_node.replace("Shape", ""))
@@ -494,9 +567,9 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, i
         f=1,
     )
 
-    if not cmds.attributeQuery( "stretch", ex=True, n=switch_ctrl):
+    if not cmds.attributeQuery("stretch", ex=True, n=switch_ctrl):
 
-        print("No Stretch Attribute found, creating one")
+        cmds.warning("No Stretch Attribute found, creating one")
         cmds.addAttr(switch_ctrl, ln="stretch", at="float", min=0, max=1, k=True)
 
     cmds.connectAttr(
@@ -509,24 +582,33 @@ def stretch(joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, i
     # Connect the final output to scale X of the SK skeleton (except the last joint)
 
     for jnt in joint_hierarchy:
-        
+
         if not jnt == joint_hierarchy[last_joint_index]:
             cmds.connectAttr(
                 "blendColors_stretch_" + suffix_name + ".output.outputR",
-                jnt + ".scaleX", f=1)
+                jnt + ".scaleX",
+                f=1
+            )
+            cmds.connectAttr(
+                "blendColors_stretch_" + suffix_name + ".output.outputR",
+                jnt.replace("SK", "IK") + ".scaleX",
+                f=1
+            )
         else:
             break
 
     set_attr(distance_node, "visibility", 0)
 
-def add_unbreakable_knees(pole_vector_ctrl:str, hierarchy:List[str], root_parent:str):
+
+def add_unbreakable_knees(
+    pole_vector_ctrl: str, hierarchy: List[str], root_parent: str
+):
 
     side = pole_vector_ctrl[-1]
 
-    pole_grp = cmds.group( pole_vector_ctrl, n=f"grp_pole_flip_{side}")
+    pole_grp = cmds.group(pole_vector_ctrl, n=f"grp_pole_flip_{side}")
 
-    ankle_ctrl = "CTRL_IK_leg_"+side
-
+    ankle_ctrl = "CTRL_IK_leg_" + side
 
     for chain in ["top", "bot"]:
 
@@ -536,13 +618,16 @@ def add_unbreakable_knees(pole_vector_ctrl:str, hierarchy:List[str], root_parent
         new_child_joint_name = f"JNT_{chain}_knee_flip_end_{side}"
         ik_handle = f"ikHandle_{chain}_knee_flip_{side}"
 
-        cmds.joint(n=new_root_joint_name, rad = 0.3)
-        cmds.joint(n=new_child_joint_name, rad = 0.3)
+        cmds.joint(n=new_root_joint_name, rad=0.3)
+        cmds.joint(n=new_child_joint_name, rad=0.3)
 
         root_index, child_index = 0, 2
 
         if chain == "bot":
-            root_index, child_index = 2, 0 # Switch the root joint of created chain to reverse the direction
+            root_index, child_index = (
+                2,
+                0,
+            )  # Switch the root joint of created chain to reverse the direction
 
         cmds.matchTransform(new_root_joint_name, hierarchy[root_index])
         cmds.makeIdentity(new_root_joint_name, a=1, t=0, r=1, s=0)
@@ -552,7 +637,7 @@ def add_unbreakable_knees(pole_vector_ctrl:str, hierarchy:List[str], root_parent
 
         # Joints Locators Creation
 
-        locator:str = cmds.spaceLocator(n=f"loc_{chain}_knee_flip_{side}")[0]
+        locator: str = cmds.spaceLocator(n=f"loc_{chain}_knee_flip_{side}")[0]
 
         cmds.matchTransform(locator, new_root_joint_name)
 
@@ -563,31 +648,39 @@ def add_unbreakable_knees(pole_vector_ctrl:str, hierarchy:List[str], root_parent
 
         # IkHandles creation
 
-        cmds.ikHandle(n= ik_handle, sol= "ikRPsolver", sj= new_root_joint_name, ee=new_child_joint_name, w=1)
+        cmds.ikHandle(
+            n=ik_handle,
+            sol="ikRPsolver",
+            sj=new_root_joint_name,
+            ee=new_child_joint_name,
+            w=1,
+        )
 
-        cmds.poleVectorConstraint(locator,ik_handle,w=1)
+        cmds.poleVectorConstraint(locator, ik_handle, w=1)
 
         # Pole Vector Locator Creation
 
-        pole_locator:str = cmds.spaceLocator(n=f"loc_{chain}_knee_{side}")[0]
+        pole_locator: str = cmds.spaceLocator(n=f"loc_{chain}_knee_{side}")[0]
         cmds.matchTransform(pole_locator, pole_vector_ctrl)
 
         cmds.parent(pole_locator, new_root_joint_name)
-        
+
     # Parent newly created objects to their respective places
 
-    group_top = cmds.group(n="grp_knee_"+side, em=1)
+    group_top = cmds.group(n="grp_knee_" + side, em=1)
     cmds.parent(group_top, root_parent)
 
     cmds.parent(ik_handle, group_top)
     cmds.parent(new_root_joint_name.replace("bot", "top"), group_top)
     cmds.parent(locator.replace("bot", "top"), group_top)
 
-    cmds.parent(ik_handle.replace("bot", "top"),ankle_ctrl)
-    cmds.parent(new_root_joint_name,ankle_ctrl)
-    
+    cmds.parent(ik_handle.replace("bot", "top"), ankle_ctrl)
+    cmds.parent(new_root_joint_name, ankle_ctrl)
+
     # Constraint new locators
-    cmds.pointConstraint(pole_locator, pole_locator.replace("bot", "top"), pole_grp, w=1)
+    cmds.pointConstraint(
+        pole_locator, pole_locator.replace("bot", "top"), pole_grp, w=1
+    )
 
     # Clean Up Scene
 

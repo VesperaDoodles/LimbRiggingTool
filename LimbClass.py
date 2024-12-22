@@ -6,65 +6,68 @@ from library import *
 myLimbObject = None
 myHandObject = None
 
+
 def getLimbObject():
-  global myLimbObject
-  if myLimbObject is None:
-    myLimbObject = LimbClass()
-  return myLimbObject
+    global myLimbObject
+    if myLimbObject is None:
+        myLimbObject = LimbClass()
+    return myLimbObject
+
 
 def getHandObject():
-  global myHandObject
-  if myHandObject is None:
-    myHandObject = HandClass()
-  return myHandObject
+    global myHandObject
+    if myHandObject is None:
+        myHandObject = HandClass()
+    return myHandObject
+
 
 class LimbClass:
     root_joint: str
     switch: str
-    switch_attribute:str
+    switch_attribute: str
 
-    side:str
+    side: str
 
     limb_joint_number: int
-    limb_type:str
+    limb_type: str
 
     hierarchy: List[str]
     joints_prefix: List[str]
 
-    ik_control:str
-    pole_control:str
+    ik_control: str
+    pole_control: str
 
     def __init__(self):
 
-        self.root_joint =  get_loaded_text_field("txt_joint_root")
+        self.root_joint = get_loaded_text_field("txt_joint_root")
         self.limb_type = "biped" if radio_is_checked("rad_limb_biped") else "quadruped"
 
         self.hierarchy = get_hierachy(self.root_joint)
 
         self.limb_joint_number = 3 if radio_is_checked("rad_limb_biped") else 4
-        
+
         if self.limb_type == "biped":
-            if  radio_is_checked("rad_limb_biped_arm"):
-                self.limb_name = "arm" 
-            else : 
+            if radio_is_checked("rad_limb_biped_arm"):
+                self.limb_name = "arm"
+            else:
 
-                if cmds.objExists(self.hierarchy[4]): # Check if a foot is included 
+                if cmds.objExists(self.hierarchy[4]):  # Check if a foot is included
                     self.limb_joint_number = 5
-                    print("Foot")
+                self.limb_name = "leg"
 
-                self.limb_name ="leg"
-                
         else:
-            self.limb_name = "front" if radio_is_checked("rad_limb_quadruped_front") else "rear"
-        
+            self.limb_name = (
+                "front" if radio_is_checked("rad_limb_quadruped_front") else "rear"
+            )
+
         self.side = self.root_joint[-1]
 
         self.suffix_name = self.limb_name + "_" + self.side
 
-        root_parents:List[str] = cmds.listRelatives(self.root_joint, p=True)
+        root_parents: List[str] = cmds.listRelatives(self.root_joint, p=True)
 
         if root_parents == None:
-            group = cmds.group(n="grp_rig_"+ self.suffix_name, em=True)
+            group = cmds.group(n="grp_rig_" + self.suffix_name, em=True)
             cmds.parent(self.root_joint, group)
             root_parents = [group]
 
@@ -73,9 +76,9 @@ class LimbClass:
         self.switch = get_loaded_text_field("txt_controller_switch")
         self.switch_attribute = ".switchFKIK"
 
-        if not cmds.attributeQuery( "switchFKIK", ex=True, n=self.switch):
+        if not cmds.attributeQuery("switchFKIK", ex=True, n=self.switch):
 
-            print("No Switch Attribute found, creating one")
+            cmds.warning("No Switch Attribute found, creating one")
             cmds.addAttr(self.switch, ln="switchFKIK", at="float", min=0, max=1, k=True)
 
         self.joints_prefix = ["FK_", "IK_"]
@@ -84,7 +87,7 @@ class LimbClass:
             self.joints_prefix.append("stretch_")
 
         # ---------------------------
-        # Controlers 
+        # Controlers
 
         self.root_fk_control = self.root_joint.replace("SK_JNT", "CTRL_FK")
 
@@ -92,21 +95,11 @@ class LimbClass:
 
         self.pole_control = "CTRL_pole_" + self.suffix_name
 
-    def show_attributes(self):
-
-        print("Root Joint:", self.root_joint)
-        print("Switch Control:", self.switch)
-        print("Limb Type:", self.limb_type)
-
-        print("Hierarchy:", self.hierarchy)
-
     def duplicate_hierarchy(self):
 
-        self.show_attributes()
-            
         # For each joint, we duplicate it, clean all rotations, rename it and put it in the correct hierachy
         # (IK, FK)
-        
+
         self.joints_prefix: List[str] = ["FK_", "IK_"]
 
         cmds.select(cl=True)
@@ -114,18 +107,17 @@ class LimbClass:
         for new_joint_prefix in self.joints_prefix:
 
             for i in range(self.limb_joint_number):
-                
+
                 new_joint_name = self.hierarchy[i]
-                print(new_joint_prefix, new_joint_name)
 
                 new_joint_name = new_joint_name.replace("SK_", new_joint_prefix)
 
-                cmds.joint(n=new_joint_name, rad = 0.3)
+                cmds.joint(n=new_joint_name, rad=0.3)
 
                 cmds.matchTransform(new_joint_name, self.hierarchy[i])
 
                 cmds.makeIdentity(new_joint_name, a=1, t=0, r=1, s=0)
-                
+
             cmds.select(cl=True)
 
         ik_root = self.root_joint.replace("SK_", "IK_")
@@ -133,14 +125,14 @@ class LimbClass:
 
         cmds.parent(ik_root, self.root_parent)
         cmds.parent(fk_root, self.root_parent)
-    
+
     def pair_blend(self):
-    
+
         blend_jointsList: List[str] = ["IK_", "FK_"]
 
         # We only process the first n elements, where n is `limb_joints`.
 
-        for sk_jnt in self.hierarchy[:self.limb_joint_number]:
+        for sk_jnt in self.hierarchy[: self.limb_joint_number]:
 
             jnt = sk_jnt.replace("SK_", "")
             ik_jnt = blend_jointsList[0] + jnt
@@ -152,24 +144,31 @@ class LimbClass:
             cmds.connectAttr(
                 (ik_jnt + ".translate"), ("pairBlend_" + jnt + ".inTranslate1"), f=1
             )
-            cmds.connectAttr((ik_jnt + ".rotate"), ("pairBlend_" + jnt + ".inRotate1"), f=1)
+            cmds.connectAttr(
+                (ik_jnt + ".rotate"), ("pairBlend_" + jnt + ".inRotate1"), f=1
+            )
 
             cmds.connectAttr(
                 (fk_jnt + ".translate"), ("pairBlend_" + jnt + ".inTranslate2"), f=1
             )
-            cmds.connectAttr((fk_jnt + ".rotate"), ("pairBlend_" + jnt + ".inRotate2"), f=1)
+            cmds.connectAttr(
+                (fk_jnt + ".rotate"), ("pairBlend_" + jnt + ".inRotate2"), f=1
+            )
 
             cmds.connectAttr(
                 ("pairBlend_" + jnt + ".outTranslate"), (sk_jnt + ".translate"), f=1
             )
-            cmds.connectAttr(("pairBlend_" + jnt + ".outRotate"), (sk_jnt + ".rotate"), f=1)
+            cmds.connectAttr(
+                ("pairBlend_" + jnt + ".outRotate"), (sk_jnt + ".rotate"), f=1
+            )
 
             cmds.connectAttr(
-                (self.switch + self.switch_attribute), ("pairBlend_" + jnt + ".weight"), f=1
+                (self.switch + self.switch_attribute),
+                ("pairBlend_" + jnt + ".weight"),
+                f=1,
             )
-        
-    def biped_rig(self):
 
+    def biped_rig(self):
 
         rig_group = "grp_" + self.suffix_name
         cmds.group(n=rig_group, em=True, w=True)
@@ -194,17 +193,22 @@ class LimbClass:
                 ("CTRL_FK" + tempJoint),
                 (self.hierarchy[i].replace("SK", "FK")),
                 translate_value=False,
-                maintain_offset_value=0)  # orient constraint
-            
+                maintain_offset_value=0,
+            )  # orient constraint
+
         # ------------------------------------------------------------------------
         # Setup IK
 
         create_control_ik(
-            self.hierarchy, self.hierarchy[2], self.side, self.ik_control, self.pole_control
+            self.hierarchy,
+            self.hierarchy[2],
+            self.side,
+            self.ik_control,
+            self.pole_control,
         )
 
         cmds.parent(self.ik_control.replace("CTRL", "offset"), rig_group)
-        cmds.parent(self.pole_control.replace("CTRL", "offset"),  rig_group)
+        cmds.parent(self.pole_control.replace("CTRL", "offset"), rig_group)
 
         # Create the main IK Handle from root to end joint (hip/shoulder > ankle wrist)
         cmds.ikHandle(
@@ -218,21 +222,17 @@ class LimbClass:
         # Parent the IK handle to the group to the end control
         cmds.parent(("IkHandle_" + self.suffix_name), self.ik_control)
 
-        cmds.poleVectorConstraint(self.pole_control, ("IkHandle_" + self.suffix_name), w=1)
+        cmds.poleVectorConstraint(
+            self.pole_control, ("IkHandle_" + self.suffix_name), w=1
+        )
+
         constraint(
             self.ik_control,
             self.hierarchy[2].replace("SK", "IK"),
             translate_value=False,
-            orient_value=True, maintain_offset_value=1
+            orient_value=True,
+            maintain_offset_value=0,
         )
-
-        offsetZ = cmds.getAttr(self.pole_control.replace("CTRL", "offset") + ".translateZ")
-        cmds.select(self.pole_control.replace("CTRL", "offset"))
-
-        if offsetZ <= 0:
-            cmds.move(-15, z=True)
-        else:
-            cmds.move(15, z=True)
 
         # Final Touch Ups in viewport -> Hide the FK controllers in IK mode and the IK controllers in FK mode
 
@@ -242,35 +242,52 @@ class LimbClass:
         cmds.shadingNode("reverse", n=(self.suffix_name + "_fkik_reverse"), au=1)
 
         cmds.connectAttr(
-            (self.switch + ".switchFKIK"), (self.suffix_name + "_fkik_reverse.inputX"), f=1
+            (self.switch + ".switchFKIK"),
+            (self.suffix_name + "_fkik_reverse.inputX"),
+            f=1,
         )
         cmds.connectAttr(
-            (self.suffix_name + "_fkik_reverse.outputX"), (self.ik_control + ".visibility"), f=1
+            (self.suffix_name + "_fkik_reverse.outputX"),
+            (self.ik_control + ".visibility"),
+            f=1,
         )
         cmds.connectAttr(
-            (self.suffix_name + "_fkik_reverse.outputX"), (self.pole_control + ".visibility"), f=1)
-        
+            (self.suffix_name + "_fkik_reverse.outputX"),
+            (self.pole_control + ".visibility"),
+            f=1,
+        )
+
         if is_checked("ckb_limb_stretch"):
             is_biped = True if self.limb_type == "biped" else False
-            stretch(self.root_joint, self.hierarchy, self.suffix_name, self.ik_control, self.switch,is_biped )
+            stretch(
+                self.root_joint,
+                self.hierarchy,
+                self.suffix_name,
+                self.ik_control,
+                self.switch,
+                is_biped,
+            )
 
         # Adds the unbreakable knee setup
 
         cmds.select(cl=1)
+
+
 
         if self.limb_name == "leg" and is_checked("ckb_better_pole"):
             add_unbreakable_knees(self.pole_control, self.hierarchy, self.root_parent)
 
     def foot_roll(self):
 
-        heel_joint= get_loaded_text_field("txt_foot_root")
+        heel_joint = get_loaded_text_field("txt_foot_root")
 
         foot_hierarchy = get_hierachy(heel_joint)
 
-        if len(foot_hierarchy)<4:
-            error_msg("The reverse foot hierarchy must contain 4 joints : heel, toe, ball and ankle.")
+        if len(foot_hierarchy) < 4:
+            error_msg(
+                "The reverse foot hierarchy must contain 4 joints : heel, toe, ball and ankle."
+            )
 
-       
         cmds.ikHandle(
             n=("IkHandle_ball_" + self.side),
             sol="ikSCsolver",
@@ -283,10 +300,9 @@ class LimbClass:
             n=("IkHandle_toe_" + self.side),
             sol="ikSCsolver",
             sj=(self.hierarchy[3].replace("SK", "IK")),
-            ee=((self.hierarchy[4].replace("SK", "IK")))
+            ee=((self.hierarchy[4].replace("SK", "IK"))),
         )
-        set_attr("IkHandle_toe_"+ self.side, "visibility", 0)
-
+        set_attr("IkHandle_toe_" + self.side, "visibility", 0)
 
         cmds.parent("IkHandle_ball_" + self.side, foot_hierarchy[2])
         cmds.parent("IkHandle_toe_" + self.side, foot_hierarchy[1])
@@ -296,63 +312,79 @@ class LimbClass:
         cmds.parent(heel_joint, self.ik_control)
 
 
-
 class HandClass:
 
     def __init__(self):
 
         shoulder = get_loaded_text_field("txt_joint_root")
-        self.side =  shoulder[-1]
+        self.side = shoulder[-1]
 
-        self.wrist_joint =  "SK_JNT_wrist_" + self.side
-        
+        self.wrist_joint = "SK_JNT_wrist_" + self.side
 
         self.switch = get_loaded_text_field("txt_controller_switch")
 
         self.hierarchy = get_hierachy(self.wrist_joint)
-
 
     def add_custom_attributes(self):
 
         fingers_list = ["index", "middle", "ring", "pinkie"]
 
         if not cmds.attributeQuery("FingersOptions", ex=True, n=self.switch):
-            cmds.addAttr(self.switch, ln="FingersOptions", at="enum", en= "------------",k=True )
+            cmds.addAttr(
+                self.switch, ln="FingersOptions", at="enum", en="------------", k=True
+            )
 
         spread_attr = f"Spread"
-        orient_attr= "Orient"
-        cmds.addAttr(self.switch, ln=spread_attr, at="float", min=-5, max=5, dv=0, k=True)
-        cmds.addAttr(self.switch, ln=orient_attr, at="float", min=-5, max=5, dv=0, k=True)
-        
+        orient_attr = "Orient"
+
+        cmds.addAttr(
+            self.switch, ln=spread_attr, at="float", min=-5, max=5, dv=0, k=True
+        )
+        cmds.addAttr(
+            self.switch, ln=orient_attr, at="float", min=-5, max=5, dv=0, k=True
+        )
+
+        cmds.addAttr(
+            self.switch, ln=f"CurlThumb", at="float", min=-10, max=5, dv=0, k=True
+        )
+
         for finger in fingers_list:
 
             curl_attr = f"Curl{finger.capitalize()}"
 
-            cmds.addAttr(self.switch, ln=curl_attr, at="float", min=-5, max=5, dv=0, k=True)
+            cmds.addAttr(
+                self.switch, ln=curl_attr, at="float", min=-10, max=5, dv=0, k=True
+            )
 
-            float_math_node  = cmds.shadingNode("floatMath", n= f"floatMath_{finger}_curl", au=True)
+            float_math_node = cmds.shadingNode(
+                "floatMath", n=f"floatMath_{finger}_curl", au=True
+            )
 
-            set_attr(float_math_node, "operation", 2)            
+            set_attr(float_math_node, "operation", 2)
 
-            float_math_node_spread  = cmds.shadingNode("floatMath", n= f"floatMath_{finger}_spread", au=True)
-            float_math_node_orient  = cmds.shadingNode("floatMath", n= f"floatMath_{finger}_orient", au=True)
-        
+            float_math_node_spread = cmds.shadingNode(
+                "floatMath", n=f"floatMath_{finger}_spread", au=True
+            )
+            float_math_node_orient = cmds.shadingNode(
+                "floatMath", n=f"floatMath_{finger}_orient", au=True
+            )
+
             set_attr(float_math_node_spread, "operation", 2)
             set_attr(float_math_node_orient, "operation", 2)
 
             if finger == "index":
                 mult_value = 2
             elif finger == "middle":
-                mult_value=0
+                mult_value = 0
             elif finger == "ring":
                 mult_value = -2
-            else :
-                mult_value = -3
+            else:
+                mult_value = -4
 
             set_attr(float_math_node_spread, "floatB", mult_value)
             set_attr(float_math_node_orient, "floatB", mult_value)
-            
-            for i in range(1,4):
+
+            for i in range(1, 4):
 
                 grp_curl_spread = f"GRP1_{finger}_0{i}_{self.side}"
                 grp_orient = f"GRP2_{finger}_0{i}_{self.side}"
@@ -360,58 +392,92 @@ class HandClass:
                 connect_attr(self.switch, curl_attr, float_math_node, "floatA")
                 connect_attr(float_math_node, "outFloat", grp_curl_spread, "rotateZ")
 
-                if i ==1 :
+                if i == 1:
 
-                    connect_attr(self.switch, spread_attr, float_math_node_spread, "floatA")
-                    connect_attr(float_math_node_spread, "outFloat", grp_curl_spread, "rotateY")
+                    connect_attr(
+                        self.switch, spread_attr, float_math_node_spread, "floatA"
+                    )
+                    connect_attr(
+                        float_math_node_spread, "outFloat", grp_curl_spread, "rotateY"
+                    )
 
-                    connect_attr(self.switch, orient_attr, float_math_node_orient, "floatA")
-                    connect_attr(float_math_node_orient, "outFloat", grp_orient, "rotateZ")
+                    connect_attr(
+                        self.switch, orient_attr, float_math_node_orient, "floatA"
+                    )
+                    connect_attr(
+                        float_math_node_orient, "outFloat", grp_orient, "rotateZ"
+                    )
 
-    def update_values(self):
+        # Thumb Attribute
 
-        curl_nodes = []
-        orient_nodes = []
-        spread_nodes = []
+        finger = "thumb"
 
-        spread_mult = get_slider_field("sld_spread")
-        curl_mult = get_slider_field("sld_curl")
-        orient_mult = get_slider_field("sld_orient")
+        curl_attr = f"Curl{finger.capitalize()}"
+
+        float_math_node = cmds.shadingNode(
+            "floatMath", n=f"floatMath_{finger}_curl", au=True
+        )
+        set_attr(float_math_node, "operation", 2)
+
+        for i in range(0, 3):
+
+            if i == 0:
+                grp_curl_spread = f"GRP1_meta_{finger}_{self.side}"
+            else:
+                grp_curl_spread = f"GRP1_{finger}_0{i}_{self.side}"
+
+            connect_attr(self.switch, curl_attr, float_math_node, "floatA")
+            connect_attr(float_math_node, "outFloat", grp_curl_spread, "rotateY")
+
+    def update_values(self, changed_attr):
 
         for finger in ["index", "middle", "ring", "pinkie"]:
 
-            curl_nodes.append(f"floatMath_{finger}_curl")
-            orient_nodes.append(f"floatMath_{finger}_orient")
-            spread_nodes.append(f"floatMath_{finger}_spread")
+            if changed_attr == "curl":
+                attr = f"floatMath_{finger}_curl"
+                mult = get_slider_field("sld_curl")
 
-            set_attr(f"floatMath_{finger}_curl", "floatB", curl_mult)
+            elif changed_attr == "spread":
+                attr = f"floatMath_{finger}_spread"
+                mult = get_slider_field("sld_spread")
+            else:
+                attr = f"floatMath_{finger}_orient"
+                mult = get_slider_field("sld_orient")
 
             if finger == "index":
                 mult_value = 2
             elif finger == "middle":
-                mult_value=0
+                mult_value = 0
             elif finger == "ring":
                 mult_value = -2
-            else :
-                mult_value = -3
+            else:
+                mult_value = -4
 
-            set_attr(f"floatMath_{finger}_spread", "floatB", spread_mult*mult_value)
-            set_attr(f"floatMath_{finger}_orient", "floatB", orient_mult*mult_value)
+            if changed_attr == "curl":
 
+                mult_value = 1
+                # Thumb Curl
+                set_attr(f"floatMath_thumb_curl", "floatB", mult * 0.5)
+
+            set_attr(attr, "floatB", mult * mult_value)
 
     def add_fingers_controls(self):
 
         fingers_list = ["index", "middle", "ring", "pinkie"]
 
-        root_phalanges = cmds.group(n="grp_rig_hand_"+ self.side,em=1)
+        root_phalanges = cmds.group(n="grp_rig_hand_" + self.side, em=1)
 
         # Parent Hand Group
         cmds.matchTransform(root_phalanges, self.wrist_joint, pos=True)
-        cmds.parentConstraint(self.wrist_joint, root_phalanges,w=1, )
+        cmds.parentConstraint(
+            self.wrist_joint,
+            root_phalanges,
+            w=1,
+        )
 
         for finger in fingers_list:
 
-            for i in range(1,4):
+            for i in range(1, 4):
 
                 phalange = f"SK_JNT_{finger}_0{i}_{self.side}"
 
@@ -419,58 +485,58 @@ class HandClass:
                 create_control_fk(phalange, self.side, 2)
 
                 # Creates group for customs attibutes
-                
-                grp1 = cmds.group(ctrl,name=phalange.replace("SK_JNT", "GRP1"))
-                grp2 = cmds.group(grp1,name=phalange.replace("SK_JNT", "GRP2"))
+
+                grp1 = cmds.group(ctrl, name=phalange.replace("SK_JNT", "GRP1"))
+                grp2 = cmds.group(grp1, name=phalange.replace("SK_JNT", "GRP2"))
 
                 # Creation of Constraints
 
-                if ("1" in phalange) :
+                if "1" in phalange:
                     cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", root_phalanges)
                     cmds.parentConstraint(ctrl, phalange, w=1, mo=1)
                 else:
-                    cmds.orientConstraint(ctrl, phalange, w=1, mo=1 )
+                    cmds.orientConstraint(ctrl, phalange, w=1, mo=1)
                     cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", previous_ctrl)
 
                 previous_ctrl = ctrl
 
         finger = "thumb"
 
-        for i in range(0,3):
-                
+        for i in range(0, 3):
+
             if i == 0:
-                    phalange = f"SK_JNT_meta_{finger}_{self.side}"
+                phalange = f"SK_JNT_meta_{finger}_{self.side}"
             else:
                 phalange = f"SK_JNT_{finger}_0{i}_{self.side}"
-                
 
             ctrl = phalange.replace("SK_JNT", "CTRL_FK")
 
             create_control_fk(phalange, self.side, 2)
 
             # Creates group for customs attibutes
-            print("Was Here", finger, i)
-            grp1 = cmds.group(ctrl,name=phalange.replace("SK_JNT", "GRP1"))
-            grp2 = cmds.group(grp1,name=phalange.replace("SK_JNT", "GRP2"))
+            grp1 = cmds.group(ctrl, name=phalange.replace("SK_JNT", "GRP1"))
+            grp2 = cmds.group(grp1, name=phalange.replace("SK_JNT", "GRP2"))
 
             # Creation of Constraints
-            if i == 0 :
+            if i == 0:
                 cmds.parentConstraint(ctrl, phalange, w=1, mo=1)
                 cmds.parent(f"offset_FK_meta_{finger}_{self.side}", root_phalanges)
             else:
-                cmds.orientConstraint(ctrl, phalange, w=1, mo=1 )
+                cmds.orientConstraint(ctrl, phalange, w=1, mo=1)
                 cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", previous_ctrl)
 
             previous_ctrl = ctrl
-        
-        
+
         self.add_custom_attributes()
+
 
 def duplicate_hierarchies_callback(*args):
     getLimbObject().duplicate_hierarchy()
 
+
 def pair_blend_callback(*args):
     getLimbObject().pair_blend()
+
 
 def add_controls_callback(*args):
 
@@ -479,11 +545,25 @@ def add_controls_callback(*args):
     else:
         getLimbObject().biped_rig()
 
+
 def add_hand_controls_callback(*args):
     getHandObject().add_fingers_controls()
+
 
 def add_foot_roll_callback(*args):
     getLimbObject().foot_roll()
 
-def update_values_attributes_callback(*args):
-     getHandObject().update_values()
+
+def update_curl_attributes_callback(*args):
+
+    getHandObject().update_values("curl")
+
+
+def update_spread_attributes_callback(*args):
+
+    getHandObject().update_values("spread")
+
+
+def update_orient_attributes_callback(*args):
+
+    getHandObject().update_values("orient")

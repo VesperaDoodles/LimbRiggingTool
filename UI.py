@@ -4,15 +4,16 @@ from typing import *
 
 from library import *
 from LimbClass import *
+from bendy_limbs import create_bendy_limb
 
 
-def toggle_visibility_callback(child_layout:str, *args):
-    print(f"Showing {child_layout} !")
+def toggle_visibility_callback(child_layout: str, *args):
     cmds.rowLayout(child_layout, e=1, vis=True)
-    
-def toggle_invisibility_callback(child_layout:str, *args):
-    print(f"Hiding {child_layout} !")
+
+
+def toggle_invisibility_callback(child_layout: str, *args):
     cmds.rowLayout(child_layout, e=1, vis=False)
+
 
 def create_invisible_separator(
     parent: str, isHorizontal: Optional[bool] = True, length: Optional[int] = None
@@ -21,17 +22,24 @@ def create_invisible_separator(
     if length == None:
         cmds.separator(st="none", parent=parent, h=isHorizontal)
     else:
-        cmds.separator(st="none", w=length, parent=parent, h=isHorizontal,)
+        cmds.separator(
+            st="none",
+            w=length,
+            parent=parent,
+            h=isHorizontal,
+        )
 
-def load_textfield_callback(textfield:str, *args):
+
+def load_textfield_callback(textfield: str, *args):
 
     selection = get_selection()
 
-    if len(selection)!= 1:
+    if len(selection) != 1:
         error_msg("Please, select only 1 object.")
 
-    to_load_txt:str = selection[0]
+    to_load_txt: str = selection[0]
     cmds.textFieldGrp(textfield, e=True, tx=to_load_txt)
+
 
 def load_ui(window_name: str):
 
@@ -43,16 +51,11 @@ def load_ui(window_name: str):
         print("Previous Window deleted")
 
     # Creates a window that fits around its children
-    cmds.window(
-        window_name,
-        title=window_name,
-        sizeable=False, rtf=True)
+    cmds.window(window_name, title=window_name, sizeable=False, rtf=True)
 
     # Use a colomn Layout
-    parent_layout = cmds.columnLayout(
-        adjustableColumn=True, rowSpacing=5
-    )
-    
+    parent_layout = cmds.columnLayout(adjustableColumn=True, rowSpacing=5)
+
     add_ui(parent_layout)
 
     # Parent the window to the main maya window
@@ -61,7 +64,8 @@ def load_ui(window_name: str):
     # Show the window
     cmds.showWindow(window_name)
 
-def add_ui(parent_layout:str):
+
+def add_ui(parent_layout: str):
 
     for i in range(3):
         create_invisible_separator(parent=parent_layout)
@@ -75,7 +79,8 @@ def add_ui(parent_layout:str):
         pht="Root Joint",
         bl="Load",
         ad2=1,
-        bc=functools.partial(load_textfield_callback, "txt_joint_root"))
+        bc=functools.partial(load_textfield_callback, "txt_joint_root"),
+    )
 
     cmds.textFieldButtonGrp(
         "txt_controller_switch",
@@ -84,9 +89,10 @@ def add_ui(parent_layout:str):
         pht="Switch Control",
         bl="Load",
         ad2=1,
-        bc=functools.partial(load_textfield_callback, "txt_controller_switch"))
-    
-     # Limb Type Radio
+        bc=functools.partial(load_textfield_callback, "txt_controller_switch"),
+    )
+
+    # Limb Type Radio
 
     limb_type_layout = cmds.rowLayout("limb_type_layout", nc=2)
     cmds.radioCollection("limb_type_radiocollection", parent=limb_type_layout)
@@ -98,40 +104,73 @@ def add_ui(parent_layout:str):
     biped_layout = "opt_biped_layout"
     quadruped_layout = "opt_quadrued_layout"
 
-    cmds.rowLayout(biped_layout, nc=2, ad2=2, parent = parent_layout)
+    cmds.rowLayout(biped_layout, nc=2, ad2=2, parent=parent_layout)
 
-    cmds.radioCollection("limb_type_position_biped_radiocollection", parent=biped_layout)
+    cmds.radioCollection(
+        "limb_type_position_biped_radiocollection", parent=biped_layout
+    )
     cmds.radioButton("rad_limb_biped_arm", l="Arm", w=140, sl=True)
     cmds.radioButton("rad_limb_biped_leg", l="Leg")
 
-    cmds.rowLayout(quadruped_layout, nc=2, ad2=2, vis=False,  parent = parent_layout)
+    cmds.rowLayout(quadruped_layout, nc=2, ad2=2, vis=False, parent=parent_layout)
 
-    cmds.radioCollection("limb_type_position_quadrued_radiocollection", parent=quadruped_layout)
+    cmds.radioCollection(
+        "limb_type_position_quadrued_radiocollection", parent=quadruped_layout
+    )
     cmds.radioButton("rad_limb_quadruped_front", l="Front", w=140, sl=True)
     cmds.radioButton("rad_limb_quadruped_rear", l="Rear")
 
     # Visibility Options
 
-    cmds.radioButton("rad_limb_biped",e=True, onc=functools.partial(toggle_visibility_callback,biped_layout))
-    cmds.radioButton("rad_limb_biped",e=True, ofc=functools.partial(toggle_invisibility_callback,biped_layout))
-    cmds.radioButton("rad_limb_quadruped",e=True, onc=functools.partial(toggle_visibility_callback,quadruped_layout))
-    cmds.radioButton("rad_limb_quadruped",e=True, ofc=functools.partial(toggle_invisibility_callback,quadruped_layout))
+    cmds.radioButton(
+        "rad_limb_biped",
+        e=True,
+        onc=functools.partial(toggle_visibility_callback, biped_layout),
+    )
+    cmds.radioButton(
+        "rad_limb_biped",
+        e=True,
+        ofc=functools.partial(toggle_invisibility_callback, biped_layout),
+    )
+    cmds.radioButton(
+        "rad_limb_quadruped",
+        e=True,
+        onc=functools.partial(toggle_visibility_callback, quadruped_layout),
+    )
+    cmds.radioButton(
+        "rad_limb_quadruped",
+        e=True,
+        ofc=functools.partial(toggle_invisibility_callback, quadruped_layout),
+    )
 
+    cmds.checkBox("ckb_limb_stretch", l="Stretch System", parent=parent_layout)
 
-    cmds.checkBox("ckb_limb_stretch", l="Stretch System", parent = parent_layout)
-
-    
     # Buttons Callbacks
 
-    cmds.button("btn_limb_hierachy", l="Create Hierachies", parent=parent_layout, command = duplicate_hierarchies_callback)
-    cmds.button("btn_limb_blend", l="Pair Blend Hierachies", parent=parent_layout, command= pair_blend_callback)
+    cmds.button(
+        "btn_limb_hierachy",
+        l="Create Hierachies",
+        parent=parent_layout,
+        command=duplicate_hierarchies_callback,
+    )
+    cmds.button(
+        "btn_limb_blend",
+        l="Pair Blend Hierachies",
+        parent=parent_layout,
+        command=pair_blend_callback,
+    )
 
     # Controls
 
     cmds.checkBox("ckb_better_pole", l="Better pole vector", parent=parent_layout)
-    cmds.button("btn_limb_controls", l="Add Controllers",parent=parent_layout, command = add_controls_callback)
+    cmds.button(
+        "btn_limb_controls",
+        l="Add Controllers",
+        parent=parent_layout,
+        command=add_controls_callback,
+    )
 
-    reverse_foot ="reverse_foot_layout"
+    reverse_foot = "reverse_foot_layout"
     cmds.rowLayout(reverse_foot, p=parent_layout, vis=False)
 
     cmds.textFieldButtonGrp(
@@ -141,18 +180,45 @@ def add_ui(parent_layout:str):
         pht="Reverse Foot Root",
         bl="Load",
         ad2=1,
-        bc=functools.partial(load_textfield_callback, "txt_foot_root"))
-    
-    cmds.radioButton("rad_limb_biped_leg",e=True, onc=functools.partial(toggle_visibility_callback,reverse_foot))
-    cmds.radioButton("rad_limb_biped_leg",e=True, ofc=functools.partial(toggle_invisibility_callback,reverse_foot))
+        bc=functools.partial(load_textfield_callback, "txt_foot_root"),
+    )
 
-    biped_options ="biped_command_layout"
-    cmds.rowLayout(biped_options, nc=2,ad2=2, parent=parent_layout)
+    cmds.radioButton(
+        "rad_limb_biped_leg",
+        e=True,
+        onc=functools.partial(toggle_visibility_callback, reverse_foot),
+    )
+    cmds.radioButton(
+        "rad_limb_biped_leg",
+        e=True,
+        ofc=functools.partial(toggle_invisibility_callback, reverse_foot),
+    )
 
-    cmds.button("btn_limb_hand", l="Add FK Hand",parent=biped_options,w=140 ,command = hand_attr_value_window)
-    cmds.button("btn_limb_foot_roll", l="Add IK foot roll",parent=biped_options, command = add_foot_roll_callback)
+    biped_options = "biped_command_layout"
+    cmds.rowLayout(biped_options, nc=2, ad2=2, parent=parent_layout)
 
-    cmds.button("btn_limb_ribbon", l="Add Ribbon to Limb",parent=parent_layout, command = print,en=False)
+    cmds.button(
+        "btn_limb_hand",
+        l="Add FK Hand",
+        parent=biped_options,
+        w=140,
+        command=hand_attr_value_window,
+    )
+    cmds.button(
+        "btn_limb_foot_roll",
+        l="Add IK foot roll",
+        parent=biped_options,
+        command=add_foot_roll_callback,
+    )
+
+    cmds.button(
+        "btn_limb_ribbon",
+        l="Add Ribbon to Limb",
+        parent=parent_layout,
+        command=create_bendy_limb,
+        en=True,
+    )
+
 
 def hand_attr_value_window(*args):
 
@@ -164,21 +230,41 @@ def hand_attr_value_window(*args):
         print("Previous Window deleted")
 
     # Creates a window that fits around its children
-    cmds.window(
-        window_name,
-        title=window_name,
-        sizeable=False, rtf=True)
+    cmds.window(window_name, title=window_name, sizeable=False, rtf=True)
 
     # Use a colomn Layout
-    parent_layout = cmds.columnLayout(
-        adjustableColumn=True, rowSpacing=5
+    parent_layout = cmds.columnLayout(adjustableColumn=True, rowSpacing=5)
+
+    cmds.floatSliderGrp(
+        "sld_curl",
+        l="Curl Multiplier",
+        p=parent_layout,
+        s=5,
+        f=True,
+        v=1,
+        cc=update_curl_attributes_callback,
+        ad3=1,
     )
-
-    cmds.floatSliderGrp("sld_curl", l="Curl Multiplier", p=parent_layout, s=5, f=True, v=1)
-    cmds.floatSliderGrp("sld_spread", l="Spread Multiplier", p=parent_layout, s=5, f=True,v=1)
-    cmds.floatSliderGrp("sld_orient", l="Oriuent Multiplier", p=parent_layout, s=5, f=True,v=1)
-
-    cmds.button("btn_OK", l="Update Values", parent=parent_layout, c=update_values_attributes_callback)
+    cmds.floatSliderGrp(
+        "sld_spread",
+        l="Spread Multiplier",
+        p=parent_layout,
+        s=5,
+        f=True,
+        v=1,
+        cc=update_spread_attributes_callback,
+        ad3=1,
+    )
+    cmds.floatSliderGrp(
+        "sld_orient",
+        l="Orient Multiplier",
+        p=parent_layout,
+        s=5,
+        f=True,
+        v=1,
+        cc=update_orient_attributes_callback,
+        ad3=1,
+    )
 
     # Parent the window to the main maya window
     cmds.setParent("..")
