@@ -202,11 +202,30 @@ controllers_library: Dict[str, List[Tuple[float, float, float]]] = {
 
 
 def error_msg(message) -> NoReturn:
+
+    ###################################
+
+    # Inputs - message, str
+    # Returns - None
+
+    # Displays an error message in maya
+
+    ###################################
+
     cmds.error(message)
     raise Exception("Should Never Happend")
 
 
 def get_selection(typ: Optional[str] = None):
+
+    ###################################
+
+        # Inputs - typ ( Optionnal ), str
+        # Returns - List
+
+        # Return the current selection, of specified type 
+
+        ###################################
 
     if typ == None:
         selection: List[str] = cmds.ls(selection=True)
@@ -217,50 +236,94 @@ def get_selection(typ: Optional[str] = None):
 
 
 def get_loaded_text_field(name: str):
+    ###################################
+
+    # Inputs - name, str
+    # Returns - str
+
+    # Returns the loaded text in the specified text field
+
+    ###################################
     return str(cmds.textFieldButtonGrp(name, q=True, tx=True))
 
 
 def is_checked(name: str):
+    ###################################
+    # Inputs - name, str
+    # Returns - bool
+    # Checks whether a checkbox is checked.
+    ###################################
     return bool(cmds.checkBox((name), query=True, value=True))
 
 
 def radio_is_checked(name: str):
+    ###################################
+    # Inputs - name, str
+    # Returns - bool
+    # Checks whether a radio button is selected.
+    ###################################
     return bool(cmds.radioButton((name), query=True, select=True))
 
 
 def get_chosen_option(name: str):
+    ###################################
+    # Inputs - name, str
+    # Returns - str
+    # Retrieves the currently selected option from an option menu.
+    ###################################
     return cmds.optionMenu((name), query=True, v=True)
 
 
 def get_slider_field(name: str):
+    ###################################
+    # Inputs - name, str
+    # Returns - float
+    # Gets the current value of a float slider field.
+    ###################################
     return float(cmds.floatSliderGrp(name, query=True, v=True))
 
 
 def get_hierachy(root_joint: str):
-
+    ###################################
+    # Inputs - root_joint, str
+    # Returns - List[str]
+    # Retrieves the hierarchy of joints starting from the root joint.
+    ###################################
     joint_hierarchy: List[str] = cmds.listRelatives(root_joint, ad=1)
     joint_hierarchy.append(root_joint)
     joint_hierarchy.reverse()
-
     return joint_hierarchy
 
 
 def set_attr(obj: str, attr: str, *values, **kwargs):
+    ###################################
+    # Inputs - obj, str; attr, str; values, variadic; kwargs, dict
+    # Returns - None
+    # Sets the value of an attribute for a specified object.
+    ###################################
     cmds.setAttr(f"{obj}.{attr}", *values, **kwargs)
 
 
 def set_appearance(obj: str, red: float, green: float, blue: float):
+    ###################################
+    # Inputs - obj, str; red, float; green, float; blue, float
+    # Returns - None
+    # Changes the appearance of an object to specified RGB values.
+    ###################################
     set_attr(obj, "overrideEnabled", 1)
     set_attr(obj, "overrideRGBColors", 1)
     set_attr(obj, "overrideColorRGB", red, green, blue)
 
 
-def unlock_transforms(object:str):
-
+def unlock_transforms(object: str):
+    ###################################
+    # Inputs - object, str
+    # Returns - None
+    # Unlocks and makes keyable the translate, rotate, and scale attributes.
+    ###################################
     for attr in ['translate', 'rotate', 'scale']:
         for axis in 'XYZ':
             attr_name = f"{object}.{attr}{axis}"
-            
             # Unlock the attribute
             if cmds.getAttr(attr_name, lock=True):
                 cmds.setAttr(attr_name, lock=False)
@@ -269,14 +332,22 @@ def unlock_transforms(object:str):
 
 
 def connect_attr(input_obj: str, input_attr: str, output_obj: str, output_attr: str):
-
+    ###################################
+    # Inputs - input_obj, str; input_attr, str; output_obj, str; output_attr, str
+    # Returns - None
+    # Connects an attribute from one object to another.
+    ###################################
     cmds.connectAttr(
         f"{input_obj}.{input_attr}", f"{output_obj}.{output_attr}", force=1
     )
 
 
 def set_lineWidth(curve: str, width: float = 2, isShape: Optional[bool] = False):
-
+    ###################################
+    # Inputs - curve, str; width, float; isShape, bool
+    # Returns - None
+    # Sets the line width of a specified curve.
+    ###################################
     if isShape or "Shape" in curve:
         cmds.setAttr(f"{curve}" + ".lineWidth", width, edit=True)
     else:
@@ -293,6 +364,13 @@ def constraint(
     scale_value: Optional[bool] = False,
     maintain_offset_value: Optional[bool] = False,
 ):
+    ###################################
+    # Inputs - parent_obj, str; constrained_obj, str;
+    #          translate_value, bool; orient_value, bool;
+    #          scale_value, bool; maintain_offset_value, bool
+    # Returns - str or List[str]
+    # Creates a constraint between two objects with specified options.
+    ###################################
 
     constraint_name: str = None
 
@@ -321,7 +399,22 @@ def constraint(
 
 def create_control_fk(jnt: str, side: str, radius: int = 8):
 
-    # Creates a FK controler and an offset group to a joint
+    ###################################
+
+    # Inputs:
+    #   jnt: Name of the joint to which the FK control will be attached.
+    #   side: Side identifier (e.g., "L" or "R").
+    #   radius: (Optional) Radius of the FK control circle. Default is 8.
+
+    # Returns: None
+
+    # Description:
+    #   This function creates a FK control and an offset group for the specified joint.
+    #   The control is a circle with configurable radius. Its appearance is modified
+    #   to have a specific line width and color based on the side of the joint.
+
+    ###################################
+
     ctrl = cmds.circle(
         c=(0, 0, 0),
         nr=(1, 0, 0),
@@ -353,18 +446,16 @@ def create_control_fk(jnt: str, side: str, radius: int = 8):
 def calculate_pole_vector_position(
     shoulder_joint: str, elbow_joint: str, wrist_joint: str, offset: float = 20.0
 ):
-    """
-    Calculate the ideal position for a pole vector controller.
+    # Inputs:
+    #   shoulder_joint: Name of the shoulder joint (string).
+    #   elbow_joint: Name of the elbow joint (string).
+    #   wrist_joint: Name of the wrist joint (string).
+    #   offset: (Optional) Distance to offset the pole vector along the calculated normal.
+    #           Default value is 20.0.
 
-    Args:
-        shoulder_joint (str): Name of the shoulder joint.
-        elbow_joint (str): Name of the elbow joint.
-        wrist_joint (str): Name of the wrist joint.
-        offset (float): Distance to offset the pole vector along the calculated normal.
-
-    Returns:
-        tuple: World-space position of the pole vector.
-    """
+    # Returns:
+    #   tuple: A 3D position in world-space (x, y, z) representing the calculated
+    #          position for the pole vector.
 
     shoulder_pos = om.MVector(cmds.xform(shoulder_joint, q=True, ws=True, t=True))
     elbow_pos = om.MVector(cmds.xform(elbow_joint, q=True, ws=True, t=True))
@@ -390,6 +481,21 @@ def create_control_ik(
     hock_control: Optional[str] = None,
     is_quad: Optional[bool] = False,
 ):
+     ###################################
+
+    # Inputs:
+    #   joint_hierarchy: List of joint names in the IK chain.
+    #   end_joint: Name of the last joint in the chain.
+    #   side: Side identifier (e.g., "L" or "R").
+    #   end_control: Name of the control at the end of the chain.
+    #   pole_vector_control: Name of the pole vector control.
+
+    # Returns: None
+
+    # Sets up an IK system for a joint hierarchy. Creates an IK handle,
+    # applies constraints, and connects controls for animation.
+
+    ###################################
 
     end = cmds.curve(
         d=1,
@@ -468,10 +574,28 @@ def parent_control_fk(joints_list: List[str], index: int):
 def stretch(
     joint_root, joint_hierarchy, suffix_name, ik_control, switch_ctrl, is_biped=True
 ):
-    # Setup Stretch
+    
+     ###################################
+
+    # Inputs:
+    #   joint_root: Root joint of the chain for which the stretch functionality will be set up.
+    #   joint_hierarchy: List of joints in the hierarchy for stretch functionality.
+    #   suffix_name: Suffix to identify this stretch setup uniquely.
+    #   ik_control: Control object for the IK system (used for parenting locators).
+    #   switch_ctrl: Control object with the stretch attribute to toggle/stretch blending.
+    #   is_biped: (Optional) Boolean flag indicating if the setup is for a bipedal character.
+    #             Defaults to True. Determines the last joint index for the hierarchy.
+
+    # Returns: None
+
+    # Description:
+    #   Sets up a stretch functionality for a joint hierarchy. This includes creating
+    #   distance measurement nodes, locators, and utility nodes (like floatMath, condition,
+    #   and blendColors) to drive the joint scaling based on the stretch factor.
+
+
 
     # Set up a measure distance node
-
     # Start Point is the root joint, end point the third joint in the hierachy
     start_point = cmds.xform(joint_root, query=True, translation=True, ws=True)
     if is_biped:
@@ -603,6 +727,20 @@ def stretch(
 def add_unbreakable_knees(
     pole_vector_ctrl: str, hierarchy: List[str], root_parent: str
 ):
+    
+    ###################################
+
+    # Inputs:
+    #   pole_vector_ctrl: The pole vector control for the IK setup.
+    #   hierarchy: List of joints in the hierarchy (e.g., leg chain: hip, knee, ankle).
+    #   root_parent: Name of the parent node for the setup (e.g., pelvis or root).
+
+    # Returns: None
+
+    # Description:
+    #   Adds an "unbreakable knees" setup to stabilize the knee joint during movement.
+    #   This setup involves creating additional joint chains and IK handles to simulate
+    #   realistic knee bending without flipping.
 
     side = pole_vector_ctrl[-1]
 

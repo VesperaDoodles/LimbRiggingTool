@@ -22,6 +22,7 @@ def getHandObject():
 
 
 class LimbClass:
+    
     root_joint: str
     switch: str
     switch_attribute: str
@@ -97,8 +98,14 @@ class LimbClass:
 
     def duplicate_hierarchy(self):
 
-        # For each joint, we duplicate it, clean all rotations, rename it and put it in the correct hierachy
-        # (IK, FK)
+        ###################################
+
+        # Inputs - self, str
+        # Returns - None
+
+        # Duplicates the SK hierarchies, clears rotations, renames and parents to the root parent 
+
+        ###################################
 
         self.joints_prefix: List[str] = ["FK_", "IK_"]
 
@@ -127,6 +134,15 @@ class LimbClass:
         cmds.parent(fk_root, self.root_parent)
 
     def pair_blend(self):
+
+        ###################################
+
+        # Inputs - self, str
+        # Returns - None
+
+        # Blends FK and IK Hierarchies and connect to SK hierarchies
+
+        ###################################
 
         blend_jointsList: List[str] = ["IK_", "FK_"]
 
@@ -169,6 +185,15 @@ class LimbClass:
             )
 
     def biped_rig(self):
+
+        ###################################
+
+        # Inputs - self, str
+        # Returns - None
+
+        # Rigs a biped limb with FK /IK blending, stretch system if specified, unbreakable knee pivot if specified 
+
+        ###################################
 
         rig_group = "grp_" + self.suffix_name
         cmds.group(n=rig_group, em=True, w=True)
@@ -272,12 +297,19 @@ class LimbClass:
 
         cmds.select(cl=1)
 
-
-
         if self.limb_name == "leg" and is_checked("ckb_better_pole"):
             add_unbreakable_knees(self.pole_control, self.hierarchy, self.root_parent)
 
     def foot_roll(self):
+
+        ###################################
+
+        # Inputs - self, str
+        # Returns - None
+
+        # Adds an IK foot roll system 
+
+        ###################################
 
         heel_joint = get_loaded_text_field("txt_foot_root")
 
@@ -327,11 +359,20 @@ class HandClass:
 
     def add_custom_attributes(self):
 
+        ###################################
+
+        # Inputs - self, str
+        # Returns - None
+
+        # Adds Attributes to Switch Controller
+
+        ###################################
+
         fingers_list = ["index", "middle", "ring", "pinkie"]
 
         if not cmds.attributeQuery("FingersOptions", ex=True, n=self.switch):
             cmds.addAttr(
-                self.switch, ln="FingersOptions", at="enum", en="------------", k=True
+                self.switch, ln="FINGERS", at="enum", en="------------", k=True
             )
 
         spread_attr = f"Spread"
@@ -431,6 +472,15 @@ class HandClass:
 
     def update_values(self, changed_attr):
 
+        ###################################
+
+        # Inputs - self, str ; changed_attr, str
+        # Returns - None
+
+        # Updates the newly changed attribute on all fingers connections
+
+        ###################################
+
         for finger in ["index", "middle", "ring", "pinkie"]:
 
             if changed_attr == "curl":
@@ -462,6 +512,15 @@ class HandClass:
             set_attr(attr, "floatB", mult * mult_value)
 
     def add_fingers_controls(self):
+
+        ###################################
+
+        # Inputs - self, str
+        # Returns - None
+
+        # Adds FK Controllers to all phalanges
+
+        ###################################
 
         fingers_list = ["index", "middle", "ring", "pinkie"]
 
@@ -555,15 +614,12 @@ def add_foot_roll_callback(*args):
 
 
 def update_curl_attributes_callback(*args):
-
     getHandObject().update_values("curl")
 
 
 def update_spread_attributes_callback(*args):
-
     getHandObject().update_values("spread")
 
 
 def update_orient_attributes_callback(*args):
-
     getHandObject().update_values("orient")

@@ -52,7 +52,7 @@ def create_follicules(nurbs_plane,limb_type, patches_number):
         cmds.matchTransform(jnt, fol_transform)
         follicles.append(fol_transform)
 
-    return follicles
+    return follicles, fol_group
 
 def add_attribute(switch):
 
@@ -71,7 +71,6 @@ def add_attribute(switch):
     cmds.addAttr(switch, ln= "TwistOffset", at= "float", k=True)
 
 def connect_attributes(blendshape, sine_handle, twist_handle):
-
 
     switch = get_loaded_text_field("txt_controller_switch")
     
@@ -111,22 +110,22 @@ def connect_attributes(blendshape, sine_handle, twist_handle):
 
 def create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist):
 
-    cmds.select(nurbs_sine)
-    cmds.select(nurbs_twist, add=True)
-    cmds.select(nurbs_limb, add=True)
-
-    blendshape_node = cmds.blendShape(n=f"bs_{limb_type}_bendy_{nurbs_limb[-1]}")
-
-    root = get_loaded_text_field("txt_joint_root")
     switch = get_loaded_text_field("txt_controller_switch")
     
     side = switch[-1]
-
 
     if radio_is_checked("rad_limb_biped_arm"):
         limb_type = "arm"
     else :
         limb_type = "leg"
+    
+    base_name = f"{limb_type}_bendy"
+
+    cmds.select(nurbs_sine)
+    cmds.select(nurbs_twist, add=True)
+    cmds.select(nurbs_limb, add=True)
+
+    blendshape_node = cmds.blendShape(n=f"bs_{limb_type}_bendy_{nurbs_limb[-1]}")
 
     cmds.select(nurbs_sine)
     sine = cmds.nonLinear(n= f"sine_{limb_type}_bendy_{side}", typ= "sine")
@@ -136,11 +135,13 @@ def create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist):
     twist = cmds.nonLinear(n= f"twist_{limb_type}_bendy_{side}", typ= "twist")
     cmds.rotate(90, z=True, os=True, r=True, fo=True)
 
+    cmds.parent( sine, f"grp_misc_{base_name}_{side}")
+    cmds.parent( twist, f"grp_misc_{base_name}_{side}")
+
     add_attribute(switch)
-    connect_attributes(limb_type, switch, blendshape_node[0], sine, twist)
+    connect_attributes(blendshape_node[0], sine, twist)
 
-def create_bendy_limb(hierarchy, limb_type, side):
-
+def create_bendy_limb(*args):
 
     ##############
     # User Inputs
@@ -187,7 +188,7 @@ def create_bendy_limb(hierarchy, limb_type, side):
     cmds.insertKnotSurface(nurbs_transform, ch=True, nk=1, add=True, ib=0, rpo=True, p = 0.48)
     cmds.insertKnotSurface(nurbs_transform, ch=True, nk=1, add=True, ib=0, rpo=True, p = 0.52)
     
-    follicles = create_follicules(nurbs_limb, limb_type, u_count+1)
+    follicles, fol_group = create_follicules(nurbs_limb, limb_type, u_count+1)
 
     cmds.delete(nurbs_transform, ch=True)
     nurbs_limb = nurbs_transform
@@ -204,10 +205,13 @@ def create_bendy_limb(hierarchy, limb_type, side):
             # If the X position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
             selected_indices.reverse()
 
+        controls_normal_axis = (1,0,0)
+
     else: # Leg
         if cmds.xform(cmds.listRelatives(follicles[0])[1], q=True, ws=True, t=True)[1] < cmds.xform(cmds.listRelatives(follicles[-1])[1], q=True, ws=True, t=True)[1]:
             # If the Y position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
             selected_indices.reverse()
+        controls_normal_axis = (0,1,0)
 
     bind_joints = []
 
@@ -259,6 +263,14 @@ def create_bendy_limb(hierarchy, limb_type, side):
 
     cmds.delete(world_space)
 
+    misc_group = cmds.group(em=True, n=f"grp_misc_{base_name}_{side}")
+
+    cmds.parent(nurbs_sine, misc_group )
+    cmds.parent(nurbs_twist, misc_group )
+    cmds.parent(fol_group, misc_group)
+
+    set_attr(misc_group, "visibility", 0)
+
     create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist)
 
     cmds.select(cl=True)
@@ -268,6 +280,8 @@ def create_bendy_limb(hierarchy, limb_type, side):
     cmds.select(nurbs_transform, add=True)
     cmds.skinCluster()
 
+    controls_group = cmds.group(em=True, n= f"GRP_{base_name}_{side}")
+
     for i, joint in enumerate(bind_joints):
 
         target = joint
@@ -275,9 +289,9 @@ def create_bendy_limb(hierarchy, limb_type, side):
         # Create Controller for middle joints
         if i != 0 and i!= 4:
 
-            controller = cmds.circle(n=joint.replace("JNT", "CTRL"), r=4)[0]
+            controller = cmds.circle(n=joint.replace("JNT", "CTRL"), r=4,nr= controls_normal_axis )[0]
             
-            cmds.matchTransform(controller, joint, pos=True, rot=True)
+            cmds.matchTransform(controller, joint, pos=True, rot=False)
             target = controller
 
             if i != 2:
@@ -324,3 +338,11 @@ def create_bendy_limb(hierarchy, limb_type, side):
             cmds.pointConstraint(bind_joints[2], bind_joints[4], offset_group, mo=False)
 
             cmds.aimConstraint(bind_joints[4], joint.replace("JNT", "aim_offset"), wuo = aim_point_middle, aim= aim_vector)
+        
+        set_attr(joint, "visibility", 0)
+        cmds.parent(offset_group, controls_group, r=True)
+
+    # Clean Up
+
+    cmds.parent(nurbs_limb, misc_group)
+    connect_attr(switch, "ExtraControllers", controls_group, "visibility")

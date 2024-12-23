@@ -12,6 +12,8 @@ import library
 importlib.reload(library)
 import LimbClass
 importlib.reload(LimbClass)
+import bendy_limbs
+importlib.reload(bendy_limbs)
 
 
 from UI import load_ui
