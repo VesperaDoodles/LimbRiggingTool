@@ -203,15 +203,19 @@ def create_bendy_limb(*args):
         for i in range(5)
     ]
 
+    arm_is_reversed = False
+
     root_joint_position = cmds.xform(cmds.listRelatives(follicles[0])[1], q=True, ws=True, t=True)
     end_joint_position = cmds.xform(cmds.listRelatives(follicles[-1])[1], q=True, ws=True, t=True)
     if limb_type == BipedLimb.Arm:
 
         if root_joint_position[0] < end_joint_position[0]:
             # If the X position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
-            selected_indices.reverse()
+            #selected_indices.reverse()
+            arm_is_reversed = True
 
         controls_normal_axis = (1,0,0)
+
     else: # Leg
         if root_joint_position[1] < end_joint_position[1]:
             # If the Y position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
@@ -228,7 +232,7 @@ def create_bendy_limb(*args):
 
         created_joint = cmds.duplicate(target_joint, n= f"JNT_{limb_part}_{base_name}_{side}")[0]
 
-        if limb_part not in ["upper", "lower"]:
+        if limb_part not in ["upper", "lower"] and limb_type == BipedLimb.Arm and side == "L":
             #set_attr(created_joint, "jointOrientY", 180)
             print("hello")
 
@@ -236,6 +240,11 @@ def create_bendy_limb(*args):
 
         set_attr(created_joint, "radius", 4)
         bind_joints.append(created_joint)
+
+    if arm_is_reversed:
+        print(bind_joints)
+        #bind_joints.reverse()
+        print("Reversed :", bind_joints)
     
     nurbs_sine = cmds.duplicate(nurbs_transform, n=f"nurbs_{limb_type}_sine_{side}")
     nurbs_twist = cmds.duplicate(nurbs_transform, n=f"nurbs_{limb_type}_twist_{side}")
@@ -259,6 +268,7 @@ def create_bendy_limb(*args):
     cmds.parent(nurbs_twist, deforms_group )
     cmds.parent(fol_group, misc_group)
 
+
     set_attr(misc_group, "visibility", 0)
     set_attr(deforms_group, "visibility", 0)
 
@@ -274,6 +284,8 @@ def create_bendy_limb(*args):
     controls_group = cmds.group(em=True, n= f"GRP_{base_name}_{side}")
 
     for i, joint in enumerate(bind_joints):
+
+        print(joint)
 
         target = joint
 
@@ -313,7 +325,10 @@ def create_bendy_limb(*args):
 
             aim_vector = (0, -1, 0)
         else:
-            aim_vector = (-1, 0, 0)
+            if side == "L":
+                aim_vector = (1, 0, 0) # tkt
+            else:
+                aim_vector = (-1, 0, 0)
 
         if i%2 == 0:
 
