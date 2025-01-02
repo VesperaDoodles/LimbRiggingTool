@@ -2,6 +2,7 @@ import maya.cmds as cmds
 import functools
 from typing import *
 from library import *
+from modules import *
 
 myLimbObject = None
 myHandObject = None
@@ -49,12 +50,13 @@ class LimbClass:
 
         if self.limb_type == "biped":
             if radio_is_checked("rad_limb_biped_arm"):
-                self.limb_name = "arm"
+                self.limb_name = BipedLimb.Arm
             else:
 
-                if cmds.objExists(self.hierarchy[4]):  # Check if a foot is included
+                if len(self.hierarchy) >= 5 :  # Check if a foot is included
                     self.limb_joint_number = 5
-                self.limb_name = "leg"
+
+                self.limb_name = BipedLimb.Leg
 
         else:
             self.limb_name = (
@@ -203,9 +205,6 @@ class LimbClass:
 
         # Connect FK controls to new joints
 
-        if self.limb_type == "biped" and radio_is_checked("rad_limb_biped_leg"):
-            self.limb_joint_number = 4
-
         for i in range(self.limb_joint_number):
 
             # Creation of FK controllers
@@ -297,7 +296,7 @@ class LimbClass:
 
         cmds.select(cl=1)
 
-        if self.limb_name == "leg" and is_checked("ckb_better_pole"):
+        if self.limb_name == BipedLimb.Leg and is_checked("ckb_better_pole"):
             add_unbreakable_knees(self.pole_control, self.hierarchy, self.root_parent)
 
     def foot_roll(self):

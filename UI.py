@@ -109,8 +109,8 @@ def add_ui(parent_layout: str):
     cmds.radioCollection(
         "limb_type_position_biped_radiocollection", parent=biped_layout
     )
-    cmds.radioButton("rad_limb_biped_arm", l="Arm", w=140, sl=True)
-    cmds.radioButton("rad_limb_biped_leg", l="Leg")
+    cmds.radioButton("rad_limb_biped_arm", l=BipedLimb.Arm, w=140, sl=True)
+    cmds.radioButton("rad_limb_biped_leg", l=BipedLimb.Leg)
 
     cmds.rowLayout(quadruped_layout, nc=2, ad2=2, vis=False, parent=parent_layout)
 

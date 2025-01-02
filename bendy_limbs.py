@@ -1,6 +1,7 @@
 import maya.cmds as cmds
 
 from library import *
+from modules import *
 
 def create_follicules(nurbs_plane,limb_type, patches_number):
 
@@ -56,19 +57,23 @@ def create_follicules(nurbs_plane,limb_type, patches_number):
 
 def add_attribute(switch):
 
-    cmds.addAttr(switch, ln= "ExtraControllers", at= "bool", k=True)
+    if not cmds.attributeQuery("SineBlend",n= switch, ex=True):
 
-    cmds.addAttr(switch, ln= "DEFORMS", at= "enum", en= "------------", k=True)
+        cmds.addAttr(switch, ln= "ExtraControllers", at= "bool", k=True)
 
-    # Sine Attributes
-    cmds.addAttr(switch, ln= "SineBlend", at= "float", min=0, max=1, k=True, dv=1)
-    cmds.addAttr(switch, ln= "SineAmplitude", at= "float", k=True)
-    cmds.addAttr(switch, ln= "SineWaveLength", at= "float", k=True)
-    cmds.addAttr(switch, ln= "SineOrientation", at= "float", k=True)
-    cmds.addAttr(switch, ln= "SineOffset", at= "float", k=True)
-    # Twist Attributes
-    cmds.addAttr(switch, ln= "TwistBlend", at= "float", min=0, max=1, k=True, dv=1)
-    cmds.addAttr(switch, ln= "TwistOffset", at= "float", k=True)
+        cmds.addAttr(switch, ln= "DEFORMS", at= "enum", en= "------------", k=True)
+
+        # Sine Attributes
+        cmds.addAttr(switch, ln= "SineBlend", at= "float", min=0, max=1, k=True, dv=1)
+        cmds.addAttr(switch, ln= "SineAmplitude", at= "float", k=True)
+        cmds.addAttr(switch, ln= "SineWaveLength", at= "float", k=True)
+        cmds.addAttr(switch, ln= "SineOrientation", at= "float", k=True)
+        cmds.addAttr(switch, ln= "SineOffset", at= "float", k=True)
+        # Twist Attributes
+        cmds.addAttr(switch, ln= "TwistBlend", at= "float", min=0, max=1, k=True, dv=1)
+        cmds.addAttr(switch, ln= "TwistOffset", at= "float", k=True)
+    else:
+        cmds.warning("Deforms Attributes already Exists. Creation is skipped.")
 
 def connect_attributes(blendshape, sine_handle, twist_handle):
 
@@ -77,9 +82,9 @@ def connect_attributes(blendshape, sine_handle, twist_handle):
     side = switch[-1]
 
     if radio_is_checked("rad_limb_biped_arm"):
-        limb_type = "arm"
+        limb_type = BipedLimb.Arm
     else :
-        limb_type = "leg"
+        limb_type = BipedLimb.Leg
 
     side = switch[-1]
 
@@ -102,11 +107,10 @@ def connect_attributes(blendshape, sine_handle, twist_handle):
 
     offset_attr = "startAngle"
 
-    if side == "L" and limb_type == "arm":
+    if side == "L" and limb_type == BipedLimb.Arm:
         offset_attr = "endAngle"
 
     connect_attr(switch, "TwistOffset", twist_node, offset_attr)
-
 
 def create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist):
 
@@ -115,9 +119,9 @@ def create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist):
     side = switch[-1]
 
     if radio_is_checked("rad_limb_biped_arm"):
-        limb_type = "arm"
+        limb_type = BipedLimb.Arm
     else :
-        limb_type = "leg"
+        limb_type = BipedLimb.Leg
     
     base_name = f"{limb_type}_bendy"
 
@@ -135,8 +139,8 @@ def create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist):
     twist = cmds.nonLinear(n= f"twist_{limb_type}_bendy_{side}", typ= "twist")
     cmds.rotate(90, z=True, os=True, r=True, fo=True)
 
-    cmds.parent( sine, f"grp_misc_{base_name}_{side}")
-    cmds.parent( twist, f"grp_misc_{base_name}_{side}")
+    cmds.parent( sine, f"grp_deforms_{base_name}_{side}")
+    cmds.parent( twist, f"grp_deforms_{base_name}_{side}")
 
     add_attribute(switch)
     connect_attributes(blendshape_node[0], sine, twist)
@@ -153,9 +157,9 @@ def create_bendy_limb(*args):
     hierarchy = get_hierachy(root)
 
     if radio_is_checked("rad_limb_biped_arm"):
-        limb_type = "arm"
+        limb_type = BipedLimb.Arm
     else :
-        limb_type = "leg"
+        limb_type = BipedLimb.Leg
 
     # Creates a Ribbon on the limb
 
@@ -172,7 +176,7 @@ def create_bendy_limb(*args):
 
    # Make Ribbon vertical if the limb is a leg
 
-    if limb_type == "leg":
+    if limb_type == BipedLimb.Leg:
 
         cmds.select(nurbs_limb)
         cmds.rotate(90, z=True,os=True, r=True, fo=True)
@@ -199,51 +203,34 @@ def create_bendy_limb(*args):
         for i in range(5)
     ]
 
-    if limb_type == "arm":
+    root_joint_position = cmds.xform(cmds.listRelatives(follicles[0])[1], q=True, ws=True, t=True)
+    end_joint_position = cmds.xform(cmds.listRelatives(follicles[-1])[1], q=True, ws=True, t=True)
+    if limb_type == BipedLimb.Arm:
 
-        if cmds.xform(cmds.listRelatives(follicles[0])[1], q=True, ws=True, t=True)[0] < cmds.xform(cmds.listRelatives(follicles[-1])[1], q=True, ws=True, t=True)[0]:
+        if root_joint_position[0] < end_joint_position[0]:
             # If the X position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
             selected_indices.reverse()
 
         controls_normal_axis = (1,0,0)
-
     else: # Leg
-        if cmds.xform(cmds.listRelatives(follicles[0])[1], q=True, ws=True, t=True)[1] < cmds.xform(cmds.listRelatives(follicles[-1])[1], q=True, ws=True, t=True)[1]:
+        if root_joint_position[1] < end_joint_position[1]:
             # If the Y position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
             selected_indices.reverse()
         controls_normal_axis = (0,1,0)
 
     bind_joints = []
 
-    for i, selected_index in enumerate(selected_indices): # Loop to rename joints
+    LIMB_PARTS = [ "root", "upper", "middle", "lower", "end"]
+    for limb_part, selected_index in zip(LIMB_PARTS, selected_indices): # Loop to rename joints
 
         target_joint = cmds.listRelatives(follicles[selected_index])[1]
         created_joint = ""
 
-        if i == 0: # Root Joint
-            root_joint = cmds.duplicate(target_joint, n= "JNT_root_"+ base_name + "_" + side)
-            created_joint = root_joint[0]
+        created_joint = cmds.duplicate(target_joint, n= f"JNT_{limb_part}_{base_name}_{side}")[0]
 
-
-        elif i == 1: # Upper Joint
-            upper_joint = cmds.duplicate(target_joint, n= "JNT_upper_"+ base_name+ "_"  + side)
-            created_joint = upper_joint[0]
-
-        elif i == 2: # Middle Joint
-            middle_joint = cmds.duplicate(target_joint, n= "JNT_middle_"+ base_name+ "_"  + side)
-            created_joint = middle_joint[0]
-
-
-        elif i == 3:  # Lower Joint
-            lower_joint = cmds.duplicate(target_joint, n= "JNT_lower_"+ base_name+ "_"  + side)
-            created_joint = lower_joint[0]
-            
-
-        else:  # End Joint
-            end_joint = cmds.duplicate(target_joint, n= "JNT_end_"+ base_name+ "_" + side)
-            created_joint = end_joint[0]
-
-        cmds.xform(created_joint, ro=(0, 180, 0))
+        if limb_part not in ["upper", "lower"]:
+            #set_attr(created_joint, "jointOrientY", 180)
+            print("hello")
 
         cmds.parent(created_joint, w=True)
 
@@ -264,12 +251,16 @@ def create_bendy_limb(*args):
     cmds.delete(world_space)
 
     misc_group = cmds.group(em=True, n=f"grp_misc_{base_name}_{side}")
+    deforms_group = cmds.group(em=True, n=f"grp_deforms_{base_name}_{side}")
 
-    cmds.parent(nurbs_sine, misc_group )
-    cmds.parent(nurbs_twist, misc_group )
+    cmds.parent(deforms_group, misc_group )
+
+    cmds.parent(nurbs_sine, deforms_group )
+    cmds.parent(nurbs_twist, deforms_group )
     cmds.parent(fol_group, misc_group)
 
     set_attr(misc_group, "visibility", 0)
+    set_attr(deforms_group, "visibility", 0)
 
     create_blendshape(nurbs_limb, nurbs_sine, nurbs_twist)
 
@@ -318,7 +309,7 @@ def create_bendy_limb(*args):
 
         # Add Constaints
 
-        if limb_type == "leg":
+        if limb_type == BipedLimb.Leg:
 
             aim_vector = (0, -1, 0)
         else:
