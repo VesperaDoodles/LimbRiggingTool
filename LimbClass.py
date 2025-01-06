@@ -34,7 +34,7 @@ class LimbClass:
     limb_type: str
 
     hierarchy: List[str]
-    joints_prefix: List[str]
+    JOINTS_PREFIX: List[str]
 
     ik_control: str
     pole_control: str
@@ -42,6 +42,10 @@ class LimbClass:
     def __init__(self):
 
         self.root_joint = get_loaded_text_field("txt_joint_root")
+
+        if len(self.root_joint) == 0:
+            error_msg("Please load a root joint.")
+
         self.limb_type = "biped" if radio_is_checked("rad_limb_biped") else "quadruped"
 
         self.hierarchy = get_hierachy(self.root_joint)
@@ -77,6 +81,10 @@ class LimbClass:
         self.root_parent = root_parents[0]
 
         self.switch = get_loaded_text_field("txt_controller_switch")
+
+        if len(self.switch) == 0:
+            error_msg("Please load a switch controller.")
+
         self.switch_attribute = ".switchFKIK"
 
         if not cmds.attributeQuery("switchFKIK", ex=True, n=self.switch):
@@ -84,10 +92,7 @@ class LimbClass:
             cmds.warning("No Switch Attribute found, creating one")
             cmds.addAttr(self.switch, ln="switchFKIK", at="float", min=0, max=1, k=True)
 
-        self.joints_prefix = ["FK_", "IK_"]
-
-        if is_checked("ckb_limb_stretch"):
-            self.joints_prefix.append("stretch_")
+        self.JOINTS_PREFIX = ["FK_", "IK_"]
 
         # ---------------------------
         # Controlers
@@ -109,11 +114,9 @@ class LimbClass:
 
         ###################################
 
-        self.joints_prefix: List[str] = ["FK_", "IK_"]
-
         cmds.select(cl=True)
 
-        for new_joint_prefix in self.joints_prefix:
+        for new_joint_prefix in self.JOINTS_PREFIX:
 
             for i in range(self.limb_joint_number):
 
@@ -186,6 +189,15 @@ class LimbClass:
                 f=1,
             )
 
+        self.lock_switch_transform()
+
+    def lock_switch_transform(self):
+
+        print("Locking")
+        lock_transforms(self.switch, to_lock=True)
+        cmds.setAttr(self.switch + ".visibility", lock=True )
+        cmds.setAttr(self.switch + ".visibility", keyable=False )
+
     def biped_rig(self):
 
         ###################################
@@ -199,6 +211,8 @@ class LimbClass:
 
         rig_group = "grp_" + self.suffix_name
         cmds.group(n=rig_group, em=True, w=True)
+
+        
 
         # ------------------------------------------------------------------------
         # Setup FK
@@ -296,7 +310,8 @@ class LimbClass:
 
         cmds.select(cl=1)
 
-        if self.limb_name == BipedLimb.Leg and is_checked("ckb_better_pole"):
+        if is_checked("ckb_better_pole"):
+            print("hellooo")
             add_unbreakable_knees(self.pole_control, self.hierarchy, self.root_parent)
 
     def foot_roll(self):
@@ -590,9 +605,6 @@ class HandClass:
 
 def duplicate_hierarchies_callback(*args):
     getLimbObject().duplicate_hierarchy()
-
-
-def pair_blend_callback(*args):
     getLimbObject().pair_blend()
 
 

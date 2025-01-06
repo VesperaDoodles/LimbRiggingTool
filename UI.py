@@ -54,7 +54,9 @@ def load_ui(window_name: str):
     cmds.window(window_name, title=window_name, sizeable=False, rtf=True)
 
     # Use a colomn Layout
-    parent_layout = cmds.columnLayout(adjustableColumn=True, rowSpacing=5)
+    margins_layout = cmds.frameLayout(mw= 5, mh=0, l="Limb Rigging", lv=False )
+
+    parent_layout = cmds.columnLayout(adjustableColumn=True, rowSpacing=5, p=margins_layout)
 
     add_ui(parent_layout)
 
@@ -72,21 +74,25 @@ def add_ui(parent_layout: str):
 
     # Text Fields
 
+    cmds.text(p=parent_layout, l= "Root Joint", al="left")
+
     cmds.textFieldButtonGrp(
         "txt_joint_root",
         parent=parent_layout,
         eb=True,
-        pht="Root Joint",
+        pht="SK_JNT_root_side",
         bl="Load",
         ad2=1,
         bc=functools.partial(load_textfield_callback, "txt_joint_root"),
     )
 
+    cmds.text(p=parent_layout, l= "Switch Controller", al="left")
+
     cmds.textFieldButtonGrp(
         "txt_controller_switch",
         parent=parent_layout,
         eb=True,
-        pht="Switch Control",
+        pht="CTRL_switch_limb_side",
         bl="Load",
         ad2=1,
         bc=functools.partial(load_textfield_callback, "txt_controller_switch"),
@@ -109,8 +115,8 @@ def add_ui(parent_layout: str):
     cmds.radioCollection(
         "limb_type_position_biped_radiocollection", parent=biped_layout
     )
-    cmds.radioButton("rad_limb_biped_arm", l=BipedLimb.Arm, w=140, sl=True)
-    cmds.radioButton("rad_limb_biped_leg", l=BipedLimb.Leg)
+    cmds.radioButton("rad_limb_biped_arm", l="Arm", w=140, sl=True)
+    cmds.radioButton("rad_limb_biped_leg", l="Leg")
 
     cmds.rowLayout(quadruped_layout, nc=2, ad2=2, vis=False, parent=parent_layout)
 
@@ -149,15 +155,9 @@ def add_ui(parent_layout: str):
 
     cmds.button(
         "btn_limb_hierachy",
-        l="Create Hierachies",
+        l="Create Blended Hierachies",
         parent=parent_layout,
         command=duplicate_hierarchies_callback,
-    )
-    cmds.button(
-        "btn_limb_blend",
-        l="Pair Blend Hierachies",
-        parent=parent_layout,
-        command=pair_blend_callback,
     )
 
     # Controls

@@ -208,6 +208,21 @@ class QuadrupedLimb:
     Forelimb = "forelimb"
     Hindlimb = "hindlimb"
 
+class WarningManager:
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        print("Hello, entering")
+        cmds.scriptEditorInfo(suppressWarnings=0,suppressInfo=0,se=0)
+    
+    def __exit__(self, type, value, traceback):
+        print("Hello, exiting")
+        cmds.scriptEditorInfo(suppressWarnings=1,suppressInfo=1,se=1)
+
+def suppress_warnings():
+    return WarningManager()
+
 def error_msg(message) -> NoReturn:
 
     ###################################
@@ -322,20 +337,24 @@ def set_appearance(obj: str, red: float, green: float, blue: float):
     set_attr(obj, "overrideColorRGB", red, green, blue)
 
 
-def unlock_transforms(object: str):
+def lock_transforms(object: str, to_lock:bool=True):
     ###################################
-    # Inputs - object, str
+    # Inputs - object, str; to_lock, bool
     # Returns - None
-    # Unlocks and makes keyable the translate, rotate, and scale attributes.
+    # Locks or Unlocks(and makes keyable) the translate, rotate, and scale attributes.
     ###################################
+
     for attr in ['translate', 'rotate', 'scale']:
+
         for axis in 'XYZ':
+
             attr_name = f"{object}.{attr}{axis}"
-            # Unlock the attribute
-            if cmds.getAttr(attr_name, lock=True):
-                cmds.setAttr(attr_name, lock=False)
-            # Ensure it is keyable
-            cmds.setAttr(attr_name, keyable=True)
+
+            # Lock (or Unlock) the attribute
+            cmds.setAttr(attr_name, lock=to_lock)
+
+            # Ensure it is keyable if unlocked
+            cmds.setAttr(attr_name, keyable= not to_lock)
 
 
 def connect_attr(input_obj: str, input_attr: str, output_obj: str, output_attr: str):
@@ -355,6 +374,7 @@ def set_lineWidth(curve: str, width: float = 2, isShape: Optional[bool] = False)
     # Returns - None
     # Sets the line width of a specified curve.
     ###################################
+    
     if isShape or "Shape" in curve:
         cmds.setAttr(f"{curve}" + ".lineWidth", width, edit=True)
     else:

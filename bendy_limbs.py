@@ -50,7 +50,7 @@ def create_follicules(nurbs_plane,limb_type, patches_number):
         cmds.connectAttr(fol_shape + ".outRotate", fol_transform + ".rotate", f=1)
 
         jnt = cmds.joint(n="SK_JNT_" + base_name + "_" + str(i + 1) + side, rad = 0.2)
-        cmds.matchTransform(jnt, fol_transform)
+        cmds.matchTransform(jnt, fol_transform, pos=1, rot=1, scl=1)
         follicles.append(fol_transform)
 
     return follicles, fol_group
@@ -201,30 +201,16 @@ def create_bendy_limb(*args):
     selected_indices = [
         int(round(i * ((u_count) / float(4))))
         for i in range(5)
-    ]
+    ] 
 
-    arm_is_reversed = False
 
-    root_joint_position = cmds.xform(cmds.listRelatives(follicles[0])[1], q=True, ws=True, t=True)
-    end_joint_position = cmds.xform(cmds.listRelatives(follicles[-1])[1], q=True, ws=True, t=True)
-    if limb_type == BipedLimb.Arm:
-
-        if root_joint_position[0] < end_joint_position[0]:
-            # If the X position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
-            #selected_indices.reverse()
-            arm_is_reversed = True
-
-        controls_normal_axis = (1,0,0)
-
-    else: # Leg
-        if root_joint_position[1] < end_joint_position[1]:
-            # If the Y position of the root joint (under the root follicle) is bigger than the end joint; then the list needs to be reversed
-            selected_indices.reverse()
-        controls_normal_axis = (0,1,0)
+    if limb_type == BipedLimb.Leg or side == "R":
+        selected_indices.reverse()
 
     bind_joints = []
 
     LIMB_PARTS = [ "root", "upper", "middle", "lower", "end"]
+
     for limb_part, selected_index in zip(LIMB_PARTS, selected_indices): # Loop to rename joints
 
         target_joint = cmds.listRelatives(follicles[selected_index])[1]
@@ -232,25 +218,13 @@ def create_bendy_limb(*args):
 
         created_joint = cmds.duplicate(target_joint, n= f"JNT_{limb_part}_{base_name}_{side}")[0]
 
-        if limb_part not in ["upper", "lower"] and limb_type == BipedLimb.Arm and side == "L":
-            #set_attr(created_joint, "jointOrientY", 180)
-            print("hello")
-
         cmds.parent(created_joint, w=True)
 
         set_attr(created_joint, "radius", 4)
         bind_joints.append(created_joint)
-
-    if arm_is_reversed:
-        print(bind_joints)
-        #bind_joints.reverse()
-        print("Reversed :", bind_joints)
     
     nurbs_sine = cmds.duplicate(nurbs_transform, n=f"nurbs_{limb_type}_sine_{side}")
     nurbs_twist = cmds.duplicate(nurbs_transform, n=f"nurbs_{limb_type}_twist_{side}")
-
-    unlock_transforms(nurbs_sine[0])
-    unlock_transforms(nurbs_twist[0])
 
     world_space = cmds.group(em=True)
 
@@ -283,28 +257,30 @@ def create_bendy_limb(*args):
 
     controls_group = cmds.group(em=True, n= f"GRP_{base_name}_{side}")
 
-    for i, joint in enumerate(bind_joints):
+    if limb_type == BipedLimb.Arm:
+        controls_normal_axis = (1,0,0)
+    else: # Leg
+        controls_normal_axis = (0,1,0)
 
-        print(joint)
+    for i, joint in enumerate(bind_joints):
 
         target = joint
 
         # Create Controller for middle joints
-        if i != 0 and i!= 4:
-
+        if 0 < i < 4:
             controller = cmds.circle(n=joint.replace("JNT", "CTRL"), r=4,nr= controls_normal_axis )[0]
             
             cmds.matchTransform(controller, joint, pos=True, rot=False)
             target = controller
 
-            if i != 2:
-
+            if i == 2: 
+                aim_point_middle = cmds.group(controller, n= joint.replace("JNT", "aim_point"))
+                target = aim_point_middle
+            else:
                 aim_offset = cmds.group(controller, n= joint.replace("JNT", "aim_offset"))
                 target = aim_offset
         
-            else: 
-                aim_point_middle = cmds.group(controller, n= joint.replace("JNT", "aim_point"))
-                target = aim_point_middle
+
 
         elif i == 0 :
 
@@ -322,13 +298,12 @@ def create_bendy_limb(*args):
         # Add Constaints
 
         if limb_type == BipedLimb.Leg:
-
-            aim_vector = (0, -1, 0)
+            aim_vector = (0, -1, 0) # Legs Aim Vector
         else:
             if side == "L":
-                aim_vector = (1, 0, 0) # tkt
+                aim_vector = (1, 0, 0) # Left Arm Aim Vector
             else:
-                aim_vector = (-1, 0, 0)
+                aim_vector = (-1, 0, 0) # Right Arm Aim Vector
 
         if i%2 == 0:
 

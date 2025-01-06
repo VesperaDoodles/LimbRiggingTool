@@ -261,35 +261,40 @@ def stretch(
     blendColors_node = "blendColors_stretch_" + suffix_name
     cmds.shadingNode("blendColors", n=blendColors_node, au=1)
 
-    # Float Math Node
-    cmds.connectAttr(
-        distance_node + ".distance",
-        floatMath_node + ".floatA",
-        f=1,
-    )
-    set_attr(floatMath_node, "operation", 3)
-    set_attr(floatMath_node, "floatB", base_distance)
+    
+    with suppress_warnings():
 
-    # Condition Node
-    cmds.connectAttr(
-        distance_node + ".distance",
-        condition_node + ".firstTerm",
-        f=1,
-    )
-    cmds.connectAttr(
-        floatMath_node + ".outFloat",
-        condition_node + ".colorIfTrue.colorIfTrueR",
-        f=1,
-    )
-    set_attr(condition_node, "operation", 2)
-    set_attr(condition_node, "secondTerm", base_distance)
+        # Float Math Node
+        cmds.connectAttr(
+            distance_node + ".distance",
+            floatMath_node + ".floatA",
+            f=1,
+        )
+        set_attr(floatMath_node, "operation", 3)
+        set_attr(floatMath_node, "floatB", base_distance)
 
-    # BlendColors Node
-    cmds.connectAttr(
-        condition_node + ".outColor.outColorR",
-        "blendColors_stretch_" + suffix_name + ".color1.color1R",
-        f=1,
-    )
+        # Condition Node
+        cmds.connectAttr(
+            distance_node + ".distance",
+            condition_node + ".firstTerm",
+            f=1,
+        )
+
+        cmds.connectAttr(
+            floatMath_node + ".outFloat",
+            condition_node + ".colorIfTrue.colorIfTrueR",
+            f=1
+        )
+
+        set_attr(condition_node, "operation", 2)
+        set_attr(condition_node, "secondTerm", base_distance)
+
+        # BlendColors Node
+        cmds.connectAttr(
+            condition_node + ".outColor.outColorR",
+            "blendColors_stretch_" + suffix_name + ".color1.color1R",
+            f=1,
+        )
 
     if not cmds.attributeQuery("stretch", ex=True, n=switch_ctrl):
 
