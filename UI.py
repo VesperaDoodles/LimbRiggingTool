@@ -54,7 +54,7 @@ def load_ui(window_name: str):
     cmds.window(window_name, title=window_name, sizeable=False, rtf=True)
 
     # Use a colomn Layout
-    margins_layout = cmds.frameLayout(mw= 5, mh=0, l="Limb Rigging", lv=False )
+    margins_layout = cmds.frameLayout(mw= 5, mh=5, l="Limb Rigging", lv=False )
 
     parent_layout = cmds.columnLayout(adjustableColumn=True, rowSpacing=5, p=margins_layout)
 
@@ -68,9 +68,6 @@ def load_ui(window_name: str):
 
 
 def add_ui(parent_layout: str):
-
-    for i in range(3):
-        create_invisible_separator(parent=parent_layout)
 
     # Text Fields
 

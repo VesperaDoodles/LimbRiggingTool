@@ -44,7 +44,7 @@ def create_control_fk(jnt: str, side: str, radius: int = 8):
 
 
 def calculate_pole_vector_position(
-    shoulder_joint: str, elbow_joint: str, wrist_joint: str, offset: float = 10.0
+    root_joint: str, middle_joint: str, end_joint: str, offset: float = 2.0
 ):
     # Inputs:
     #   shoulder_joint: Name of the shoulder joint (string).
@@ -57,9 +57,9 @@ def calculate_pole_vector_position(
     #   tuple: A 3D position in world-space (x, y, z) representing the calculated
     #          position for the pole vector.
 
-    shoulder_pos = om.MVector(cmds.xform(shoulder_joint, q=True, ws=True, t=True))
-    elbow_pos = om.MVector(cmds.xform(elbow_joint, q=True, ws=True, t=True))
-    wrist_pos = om.MVector(cmds.xform(wrist_joint, q=True, ws=True, t=True))
+    shoulder_pos = om.MVector(cmds.xform(root_joint, q=True, ws=True, t=True))
+    elbow_pos = om.MVector(cmds.xform(middle_joint, q=True, ws=True, t=True))
+    wrist_pos = om.MVector(cmds.xform(end_joint, q=True, ws=True, t=True))
 
     # Calculate midpoint
     midpoint = (shoulder_pos + wrist_pos) * 0.5
@@ -147,7 +147,7 @@ def create_control_ik(
 
     # Creation of offset groups
     offset_end = cmds.group(end, n=end_control.replace("CTRL", "offset"))
-    cmds.matchTransform(offset_end, end_joint, pos=True, rot=True, piv=True)
+    cmds.matchTransform(offset_end, end_joint, pos=True, rot=False, piv=True)
 
     offset_pole = cmds.group(pole, n=pole_control.replace("CTRL", "offset"))
     position = calculate_pole_vector_position(
