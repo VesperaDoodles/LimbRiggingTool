@@ -1,4 +1,4 @@
-Project for The Rookies 2024 
+# Project for The Rookies 2024 
 Biped Limb Rig Script with options :
 
 - FK Hand setup
@@ -7,9 +7,9 @@ Biped Limb Rig Script with options :
 - Stretch System
 - Automatic Pole Vector Placement
 
-INSTALLATION
-# main.py 
+# INSTALLATION
+### main.py 
 Edit the directory constant variable to be the path to your LimbRiggingTool folder
 
-# In Maya
+### In Maya
 Load the main.py
