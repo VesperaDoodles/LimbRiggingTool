@@ -13,3 +13,7 @@ Edit the directory constant variable to be the path to your LimbRiggingTool fold
 
 ### In Maya
 Load the main.py
+
+# UI
+<img width="310" height="368" alt="image" src="https://github.com/user-attachments/assets/1f26c60a-00bc-444f-abcb-b6e38f5bff62" />
+
