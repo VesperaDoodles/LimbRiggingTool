@@ -168,8 +168,7 @@ def create_control_ik(
 
     offset_pole = cmds.group(pole, n=pole_control.replace(NameConvention.controller, "offset"))
     position = calculate_pole_vector_position(
-        joint_hierarchy[0], joint_hierarchy[1], joint_hierarchy[2]
-    )
+        joint_hierarchy[0], joint_hierarchy[1], joint_hierarchy[2], 5*scale)
 
     cmds.setAttr(offset_pole + ".translateX", position[0])
     cmds.setAttr(offset_pole + ".translateY", position[1])

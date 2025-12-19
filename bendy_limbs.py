@@ -149,6 +149,7 @@ def create_bendy_limb(*args):
 
     ##############
     # User Inputs
+    scale = get_float_field("ff_limb_scale")
     root = get_loaded_text_field("txt_joint_root")
     switch = get_loaded_text_field("txt_controller_switch")
 
@@ -171,7 +172,7 @@ def create_bendy_limb(*args):
     end_joint = hierarchy[2]
 
     # Create the main ribbon and deformers ribbons
-    nurbs_limb = cmds.nurbsPlane(n=f"nurbs_{limb_type}_{side}", u=u_count, lr = 0.16, w=u_count*5, ax= [0,0,1])
+    nurbs_limb = cmds.nurbsPlane(n=f"nurbs_{limb_type}_{side}", u=u_count, lr = 0.16, w=u_count*1, ax= [0,0,1])
     nurbs_transform = nurbs_limb[0]
 
    # Make Ribbon vertical if the limb is a leg
@@ -268,7 +269,7 @@ def create_bendy_limb(*args):
 
         # Create Controller for middle joints
         if 0 < i < 4:
-            controller = cmds.circle(n=joint.replace(NameConvention.joint, NameConvention.controller), r=4,nr= controls_normal_axis )[0]
+            controller = cmds.circle(n=joint.replace(NameConvention.joint, NameConvention.controller), r=scale,nr= controls_normal_axis )[0]
             
             cmds.matchTransform(controller, joint, pos=True, rot=False)
             target = controller
