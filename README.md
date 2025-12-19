@@ -1,4 +1,6 @@
 # Project for The Rookies 2024 
+Edited for public release
+
 Biped Limb Rig Script with options :
 
 - FK Hand setup
