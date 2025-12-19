@@ -90,23 +90,23 @@ controllers_library: Dict[str, List[Tuple[float, float, float]]] = {
         (0.3, 1.0, 0.0),
     ],
     "box": [
-        (-4.0, -4.0, 4.0),
-        (-4.0, 4.0, 4.0),
-        (-4.0, 4.0, -4.0),
-        (-4.0, -4.0, -4.0),
-        (-4.0, -4.0, 4.0),
-        (4.0, -4.0, 4.0),
-        (4.0, 4.0, 4.0),
-        (4.0, 4.0, -4.0),
-        (4.0, -4.0, -4.0),
-        (4.0, -4.0, 4.0),
-        (-4.0, -4.0, 4.0),
-        (-4.0, 4.0, 4.0),
-        (4.0, 4.0, 4.0),
-        (4.0, 4.0, -4.0),
-        (-4.0, 4.0, -4.0),
-        (-4.0, -4.0, -4.0),
-        (4.0, -4.0, -4.0),
+        (-1.0, -1.0, 1.0),
+        (-1.0, 1.0, 1.0),
+        (-1.0, 1.0, -1.0),
+        (-1.0, -1.0, -1.0),
+        (-1.0, -1.0, 1.0),
+        (1.0, -1.0, 1.0),
+        (1.0, 1.0, 1.0),
+        (1.0, 1.0, -1.0),
+        (1.0, -1.0, -1.0),
+        (1.0, -1.0, 1.0),
+        (-1.0, -1.0, 1.0),
+        (-1.0, 1.0, 1.0),
+        (1.0, 1.0, 1.0),
+        (1.0, 1.0, -1.0),
+        (-1.0, 1.0, -1.0),
+        (-1.0, -1.0, -1.0),
+        (1.0, -1.0, -1.0),
     ],
     "joint": [
         (0.0, 1.0, 0.0),
@@ -213,30 +213,15 @@ class WarningManager:
         pass
 
     def __enter__(self):
-        print("Hello, entering")
+        print("Unsuppressing Warnings now")
         cmds.scriptEditorInfo(suppressWarnings=0,suppressInfo=0,se=0)
     
     def __exit__(self, type, value, traceback):
-        print("Hello, exiting")
+        print("Suppressing Warnings now")
         cmds.scriptEditorInfo(suppressWarnings=1,suppressInfo=1,se=1)
 
 def suppress_warnings():
     return WarningManager()
-
-def error_msg(message) -> NoReturn:
-
-    ###################################
-
-    # Inputs - message, str
-    # Returns - None
-
-    # Displays an error message in maya
-
-    ###################################
-
-    cmds.error(message)
-    raise Exception("Should Never Happend")
-
 
 def get_selection(typ: Optional[str] = None):
 
@@ -255,6 +240,17 @@ def get_selection(typ: Optional[str] = None):
         selection: List[str] = cmds.ls(selection=True, typ=typ)
 
     return selection
+
+def get_float_field(name:str):
+    ###################################
+
+    # Inputs - name, str
+    # Returns - float
+
+    # Returns the float text in the specified float field
+
+    ###################################
+    return float(cmds.floatFieldGrp(name, q=True, v1=True))
 
 
 def get_loaded_text_field(name: str):

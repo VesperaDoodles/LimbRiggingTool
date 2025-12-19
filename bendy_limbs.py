@@ -49,7 +49,7 @@ def create_follicules(nurbs_plane,limb_type, patches_number):
         cmds.connectAttr(fol_shape + ".outTranslate", fol_transform + ".translate", f=1)
         cmds.connectAttr(fol_shape + ".outRotate", fol_transform + ".rotate", f=1)
 
-        jnt = cmds.joint(n="SK_JNT_" + base_name + "_" + str(i + 1) + side, rad = 0.2)
+        jnt = cmds.joint(n=  "_" + base_name + "_" + str(i + 1) + side, rad = 0.2)
         cmds.matchTransform(jnt, fol_transform, pos=1, rot=1, scl=1)
         follicles.append(fol_transform)
 
@@ -216,7 +216,7 @@ def create_bendy_limb(*args):
         target_joint = cmds.listRelatives(follicles[selected_index])[1]
         created_joint = ""
 
-        created_joint = cmds.duplicate(target_joint, n= f"JNT_{limb_part}_{base_name}_{side}")[0]
+        created_joint = cmds.duplicate(target_joint, n= f"{NameConvention.joint}_{limb_part}_{base_name}_{side}")[0]
 
         cmds.parent(created_joint, w=True)
 
@@ -268,28 +268,28 @@ def create_bendy_limb(*args):
 
         # Create Controller for middle joints
         if 0 < i < 4:
-            controller = cmds.circle(n=joint.replace("JNT", "CTRL"), r=4,nr= controls_normal_axis )[0]
+            controller = cmds.circle(n=joint.replace(NameConvention.joint, NameConvention.controller), r=4,nr= controls_normal_axis )[0]
             
             cmds.matchTransform(controller, joint, pos=True, rot=False)
             target = controller
 
             if i == 2: 
-                aim_point_middle = cmds.group(controller, n= joint.replace("JNT", "aim_point"))
+                aim_point_middle = cmds.group(controller, n= joint.replace(NameConvention.joint, "aim_point"))
                 target = aim_point_middle
             else:
-                aim_offset = cmds.group(controller, n= joint.replace("JNT", "aim_offset"))
+                aim_offset = cmds.group(controller, n= joint.replace(NameConvention.joint, "aim_offset"))
                 target = aim_offset
         
 
 
         elif i == 0 :
 
-            aim_point_root = cmds.group(joint, n= joint.replace("JNT", "aim_point"))
+            aim_point_root = cmds.group(joint, n= joint.replace(NameConvention.joint, "aim_point"))
             target = aim_point_root
 
         # Create Offsets Group
 
-        offset_group = cmds.group(target, n= joint.replace("JNT", "offset"))
+        offset_group = cmds.group(target, n= joint.replace(NameConvention.joint, "offset"))
 
         if i != 0 and i!= 4:
             cmds.makeIdentity(controller, t=True, r=True, a=True)
@@ -313,12 +313,12 @@ def create_bendy_limb(*args):
         elif i == 1:
             cmds.pointConstraint(bind_joints[0], bind_joints[2], offset_group, mo=False)
 
-            cmds.aimConstraint(bind_joints[2], joint.replace("JNT", "aim_offset"), wuo = aim_point_root, aim= aim_vector)
+            cmds.aimConstraint(bind_joints[2], joint.replace(NameConvention.joint, "aim_offset"), wuo = aim_point_root, aim= aim_vector)
 
         else : 
             cmds.pointConstraint(bind_joints[2], bind_joints[4], offset_group, mo=False)
 
-            cmds.aimConstraint(bind_joints[4], joint.replace("JNT", "aim_offset"), wuo = aim_point_middle, aim= aim_vector)
+            cmds.aimConstraint(bind_joints[4], joint.replace(NameConvention.joint, "aim_offset"), wuo = aim_point_middle, aim= aim_vector)
         
         set_attr(joint, "visibility", 0)
         cmds.parent(offset_group, controls_group, r=True)

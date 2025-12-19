@@ -35,7 +35,7 @@ def load_textfield_callback(textfield: str, *args):
     selection = get_selection()
 
     if len(selection) != 1:
-        error_msg("Please, select only 1 object.")
+        raise ValueError ("Please, select only 1 object.")
 
     to_load_txt: str = selection[0]
     cmds.textFieldGrp(textfield, e=True, tx=to_load_txt)
@@ -71,13 +71,15 @@ def add_ui(parent_layout: str):
 
     # Text Fields
 
+    cmds.floatFieldGrp("ff_limb_scale", p=parent_layout, l="Scale : ", v1=1.0, ad2=2, cal=[1, "left"], cw=[1, 50])
+
     cmds.text(p=parent_layout, l= "Root Joint", al="left")
 
     cmds.textFieldButtonGrp(
         "txt_joint_root",
         parent=parent_layout,
         eb=True,
-        pht="SK_JNT_root_side",
+        pht="SK_root_side",
         bl="Load",
         ad2=1,
         bc=functools.partial(load_textfield_callback, "txt_joint_root"),

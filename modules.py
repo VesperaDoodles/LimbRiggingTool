@@ -4,6 +4,22 @@ from library import *
 from typing import *
 
 
+class NameConvention:
+    joint = "JNT"
+    controller = "CTRL"
+
+    main = "SK"
+    fk = "FK"
+    ik= "IK"
+
+def scale_controller_shape(shape:str, scale:float=1.0):
+
+    scaled_positions:list[tuple[float,float,float]] = []
+    for coord in controllers_library[shape]:
+        scaled_positions.append((coord[0]*scale,coord[1]*scale,coord[2]*scale))
+
+    return scaled_positions
+
 def create_control_fk(jnt: str, side: str, radius: int = 8):
     """
     This function creates a FK control and an offset group for the specified joint.
@@ -22,12 +38,12 @@ def create_control_fk(jnt: str, side: str, radius: int = 8):
         r=radius,
         s=8,
         ch=False,
-        n=jnt.replace("SK_JNT", "CTRL_FK"),
+        n=jnt.replace(NameConvention.main, NameConvention.controller + "_" + NameConvention.fk),
     )
     shape = cmds.listRelatives(ctrl, shapes=True)[0]
 
     # Creation of offset group
-    offset = cmds.group(ctrl, n=jnt.replace("SK_JNT", "offset_FK"))
+    offset = cmds.group(ctrl, n=jnt.replace(NameConvention.main, "offset_"+ NameConvention.fk))
 
     # Modification of controlers appearance
     set_lineWidth(ctrl[0], 2)
@@ -80,6 +96,7 @@ def create_control_ik(
     pole_control: str,
     hock_control: Optional[str] = None,
     is_quad: Optional[bool] = False,
+    scale:Optional[float] = 1.0
 ):
      ###################################
 
@@ -99,7 +116,7 @@ def create_control_ik(
 
     end = cmds.curve(
         d=1,
-        p=controllers_library["box"],
+        p=scale_controller_shape("box", scale),
         k=list(range(len((controllers_library["box"])))),
         n=end_control,
     )
@@ -107,7 +124,7 @@ def create_control_ik(
 
     pole = cmds.curve(
         d=1,
-        p=controllers_library["joint"],
+        p=scale_controller_shape("joint", scale),
         k=list(range(len((controllers_library["joint"])))),
         n=pole_control,
     )
@@ -133,7 +150,7 @@ def create_control_ik(
 
         hock = cmds.curve(
             d=1,
-            p=controllers_library["box"],
+            p=scale_controller_shape("box", scale),
             k=list(range(len((controllers_library["box"])))),
             n=hock_control,
         )
@@ -142,14 +159,14 @@ def create_control_ik(
         set_appearance(shape_hock, color[0], color[1], color[2])
         set_lineWidth(shape_hock, 1.5)
 
-        offset_hock = cmds.group(hock, n=hock.replace("CTRL", "offset"))
+        offset_hock = cmds.group(hock, n=hock.replace(NameConvention.controller, "offset"))
         cmds.matchTransform(offset_hock, hock_joint, px=1, py=1, pz=1, rx=0, ry=0, rz=0)
 
     # Creation of offset groups
-    offset_end = cmds.group(end, n=end_control.replace("CTRL", "offset"))
+    offset_end = cmds.group(end, n=end_control.replace(NameConvention.controller, "offset"))
     cmds.matchTransform(offset_end, end_joint, pos=True, rot=False, piv=True)
 
-    offset_pole = cmds.group(pole, n=pole_control.replace("CTRL", "offset"))
+    offset_pole = cmds.group(pole, n=pole_control.replace(NameConvention.controller, "offset"))
     position = calculate_pole_vector_position(
         joint_hierarchy[0], joint_hierarchy[1], joint_hierarchy[2]
     )
@@ -162,10 +179,10 @@ def create_control_ik(
 def parent_control_fk(joints_list: List[str], index: int):
 
     # Parents a controler's offset group to the correct controler
-    offset = joints_list[index].replace("SK_JNT", "offset_FK")
+    offset = joints_list[index].replace(NameConvention.main, "offset_" + NameConvention.fk)
     if index > 0:
-        offset = joints_list[index].replace("SK_JNT", "offset_FK")
-        ctrl_parent = joints_list[index - 1].replace("SK_JNT", "CTRL_FK")
+        offset = joints_list[index].replace(NameConvention.main, "offset_"+NameConvention.fk)
+        ctrl_parent = joints_list[index - 1].replace(NameConvention.main, NameConvention.controller+"_"+NameConvention.fk)
         cmds.parent(offset, ctrl_parent)
     else:
         return offset
@@ -320,7 +337,7 @@ def stretch(
             )
             cmds.connectAttr(
                 "blendColors_stretch_" + suffix_name + ".output.outputR",
-                jnt.replace("SK", "IK") + ".scaleX",
+                jnt.replace(NameConvention.main, NameConvention.ik) + ".scaleX",
                 f=1
             )
         else:
@@ -351,14 +368,14 @@ def add_unbreakable_knees(
 
     pole_grp = cmds.group(pole_vector_ctrl, n=f"grp_pole_flip_{side}")
 
-    ankle_ctrl = "CTRL_IK_leg_" + side
+    ankle_ctrl = f"{NameConvention.controller}_{NameConvention.ik}_leg_" + side
 
     for chain in ["top", "bot"]:
 
         # Creation of top and bottom hierachies
 
-        new_root_joint_name = f"JNT_{chain}_knee_flip_{side}"
-        new_child_joint_name = f"JNT_{chain}_knee_flip_end_{side}"
+        new_root_joint_name = f"{NameConvention.joint}_{chain}_knee_flip_{side}"
+        new_child_joint_name = f"{NameConvention.joint}_{chain}_knee_flip_end_{side}"
         ik_handle = f"ikHandle_{chain}_knee_flip_{side}"
 
         cmds.joint(n=new_root_joint_name, rad=0.3)

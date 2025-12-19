@@ -2,6 +2,7 @@ import sys
 
 DIRECTORY = r"C:\Users\user\Documents\maya\maya_version\scripts\LimbRigging"
 
+
 sys.path.append(DIRECTORY)
 
 import importlib
@@ -20,9 +21,6 @@ importlib.reload(modules)
 
 from UI import load_ui
 from library import *
-
-import maya.cmds as cmds
-import functools
 from typing import *
 
 window_name = "LimbRiggingTool"

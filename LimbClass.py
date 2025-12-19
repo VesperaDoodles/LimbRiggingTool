@@ -1,5 +1,5 @@
 import maya.cmds as cmds
-import functools
+
 from typing import *
 from library import *
 from modules import *
@@ -21,12 +21,13 @@ def getHandObject():
         myHandObject = HandClass()
     return myHandObject
 
-
 class LimbClass:
     
     root_joint: str
     switch: str
     switch_attribute: str
+
+    scale:float
 
     side: str
 
@@ -42,9 +43,10 @@ class LimbClass:
     def __init__(self):
 
         self.root_joint = get_loaded_text_field("txt_joint_root")
+        self.scale = get_float_field("ff_limb_scale")
 
         if len(self.root_joint) == 0:
-            error_msg("Please load a root joint.")
+            raise ValueError ("Please load a root joint.")
 
         self.limb_type = "biped" if radio_is_checked("rad_limb_biped") else "quadruped"
 
@@ -83,7 +85,7 @@ class LimbClass:
         self.switch = get_loaded_text_field("txt_controller_switch")
 
         if len(self.switch) == 0:
-            error_msg("Please load a switch controller.")
+            raise ValueError("Please load a switch controller.")
 
         self.switch_attribute = ".switchFKIK"
 
@@ -92,16 +94,16 @@ class LimbClass:
             cmds.warning("No Switch Attribute found, creating one")
             cmds.addAttr(self.switch, ln="switchFKIK", at="float", min=0, max=1, k=True)
 
-        self.JOINTS_PREFIX = ["FK_", "IK_"]
+        self.JOINTS_PREFIX = [NameConvention.fk + "_", NameConvention.ik + "_"]
 
         # ---------------------------
         # Controlers
 
-        self.root_fk_control = self.root_joint.replace("SK_JNT", "CTRL_FK")
+        self.root_fk_control = self.root_joint.replace(NameConvention.main, f"{NameConvention.controller}_{NameConvention.fk}")
 
-        self.ik_control = "CTRL_IK_" + self.suffix_name
+        self.ik_control = f"{NameConvention.controller}_{NameConvention.ik}_" + self.suffix_name
 
-        self.pole_control = "CTRL_pole_" + self.suffix_name
+        self.pole_control = f"{NameConvention.controller}_pole_" + self.suffix_name
 
     def duplicate_hierarchy(self):
 
@@ -122,7 +124,7 @@ class LimbClass:
 
                 new_joint_name = self.hierarchy[i]
 
-                new_joint_name = new_joint_name.replace("SK_", new_joint_prefix)
+                new_joint_name = new_joint_name.replace(NameConvention.main + "_", new_joint_prefix)
 
                 cmds.joint(n=new_joint_name, rad=0.3)
 
@@ -132,8 +134,8 @@ class LimbClass:
 
             cmds.select(cl=True)
 
-        ik_root = self.root_joint.replace("SK_", "IK_")
-        fk_root = self.root_joint.replace("SK_", "FK_")
+        ik_root = self.root_joint.replace(NameConvention.main, NameConvention.ik)
+        fk_root = self.root_joint.replace(NameConvention.main, NameConvention.fk)
 
         cmds.parent(ik_root, self.root_parent)
         cmds.parent(fk_root, self.root_parent)
@@ -149,13 +151,13 @@ class LimbClass:
 
         ###################################
 
-        blend_jointsList: List[str] = ["IK_", "FK_"]
+        blend_jointsList: List[str] = [NameConvention.ik, NameConvention.fk]
 
         # We only process the first n elements, where n is `limb_joints`.
 
         for sk_jnt in self.hierarchy[: self.limb_joint_number]:
 
-            jnt = sk_jnt.replace("SK_", "")
+            jnt = sk_jnt.replace(NameConvention.main, "")
             ik_jnt = blend_jointsList[0] + jnt
             fk_jnt = blend_jointsList[1] + jnt
 
@@ -193,7 +195,6 @@ class LimbClass:
 
     def lock_switch_transform(self):
 
-        print("Locking")
         lock_transforms(self.switch, to_lock=True)
         cmds.setAttr(self.switch + ".visibility", lock=True )
         cmds.setAttr(self.switch + ".visibility", keyable=False )
@@ -212,8 +213,7 @@ class LimbClass:
         rig_group = "grp_" + self.suffix_name
         cmds.group(n=rig_group, em=True, w=True)
 
-        
-
+    
         # ------------------------------------------------------------------------
         # Setup FK
 
@@ -222,14 +222,14 @@ class LimbClass:
         for i in range(self.limb_joint_number):
 
             # Creation of FK controllers
-            tempJoint = self.hierarchy[i].replace("SK_JNT", "")
-            create_control_fk(self.hierarchy[i], self.side, 8)
+            tempJoint = self.hierarchy[i].replace(NameConvention.main, "")
+            create_control_fk(self.hierarchy[i], self.side, self.scale)
             tempctrl = parent_control_fk(self.hierarchy, i)
             if i == 0:
                 cmds.parent(tempctrl, rig_group)
             constraint(
-                ("CTRL_FK" + tempJoint),
-                (self.hierarchy[i].replace("SK", "FK")),
+                (f"{NameConvention.controller}_{NameConvention.fk}" + tempJoint),
+                (self.hierarchy[i].replace(NameConvention.main, NameConvention.fk)),
                 translate_value=False,
                 maintain_offset_value=0,
             )  # orient constraint
@@ -245,15 +245,15 @@ class LimbClass:
             self.pole_control,
         )
 
-        cmds.parent(self.ik_control.replace("CTRL", "offset"), rig_group)
-        cmds.parent(self.pole_control.replace("CTRL", "offset"), rig_group)
+        cmds.parent(self.ik_control.replace(NameConvention.controller, "offset"), rig_group)
+        cmds.parent(self.pole_control.replace(NameConvention.controller, "offset"), rig_group)
 
         # Create the main IK Handle from root to end joint (hip/shoulder > ankle wrist)
         cmds.ikHandle(
             n=("IkHandle_" + self.suffix_name),
             sol="ikRPsolver",
-            sj=(self.hierarchy[0].replace("SK", "IK")),
-            ee=((self.hierarchy[2].replace("SK", "IK"))),
+            sj=(self.hierarchy[0].replace(NameConvention.main, NameConvention.ik)),
+            ee=((self.hierarchy[2].replace(NameConvention.main, NameConvention.ik))),
         )
         set_attr("IkHandle_" + self.suffix_name, "visibility", 0)
 
@@ -266,7 +266,7 @@ class LimbClass:
 
         constraint(
             self.ik_control,
-            self.hierarchy[2].replace("SK", "IK"),
+            self.hierarchy[2].replace(NameConvention.main, NameConvention.ik),
             translate_value=False,
             orient_value=True,
             maintain_offset_value=0,
@@ -311,7 +311,6 @@ class LimbClass:
         cmds.select(cl=1)
 
         if is_checked("ckb_better_pole"):
-            print("hellooo")
             add_unbreakable_knees(self.pole_control, self.hierarchy, self.root_parent)
 
     def foot_roll(self):
@@ -330,23 +329,21 @@ class LimbClass:
         foot_hierarchy = get_hierachy(heel_joint)
 
         if len(foot_hierarchy) < 4:
-            error_msg(
-                "The reverse foot hierarchy must contain 4 joints : heel, toe, ball and ankle."
-            )
+            raise IndexError ("The reverse foot hierarchy must contain 4 joints : heel, toe, ball and ankle.")
 
         cmds.ikHandle(
             n=("IkHandle_ball_" + self.side),
             sol="ikSCsolver",
-            sj=(self.hierarchy[2].replace("SK", "IK")),
-            ee=((self.hierarchy[3].replace("SK", "IK"))),
+            sj=(self.hierarchy[2].replace(NameConvention.main, NameConvention.ik)),
+            ee=((self.hierarchy[3].replace(NameConvention.main, NameConvention.ik))),
         )
         set_attr("IkHandle_ball_" + self.side, "visibility", 0)
 
         cmds.ikHandle(
             n=("IkHandle_toe_" + self.side),
             sol="ikSCsolver",
-            sj=(self.hierarchy[3].replace("SK", "IK")),
-            ee=((self.hierarchy[4].replace("SK", "IK"))),
+            sj=(self.hierarchy[3].replace(NameConvention.main, NameConvention.ik)),
+            ee=((self.hierarchy[4].replace(NameConvention.main, NameConvention.ik))),
         )
         set_attr("IkHandle_toe_" + self.side, "visibility", 0)
 
@@ -365,7 +362,7 @@ class HandClass:
         shoulder = get_loaded_text_field("txt_joint_root")
         self.side = shoulder[-1]
 
-        self.wrist_joint = "SK_JNT_wrist_" + self.side
+        self.wrist_joint = NameConvention.main+ "_wrist_" + self.side
 
         self.switch = get_loaded_text_field("txt_controller_switch")
 
@@ -552,24 +549,24 @@ class HandClass:
 
             for i in range(1, 4):
 
-                phalange = f"SK_JNT_{finger}_0{i}_{self.side}"
+                phalange = f"{NameConvention.main}_{finger}_0{i}_{self.side}"
 
-                ctrl = phalange.replace("SK_JNT", "CTRL_FK")
+                ctrl = phalange.replace(NameConvention.main, NameConvention.controller + "_" + NameConvention.fk)
                 create_control_fk(phalange, self.side, 2)
 
                 # Creates group for customs attibutes
 
-                grp1 = cmds.group(ctrl, name=phalange.replace("SK_JNT", "GRP1"))
-                grp2 = cmds.group(grp1, name=phalange.replace("SK_JNT", "GRP2"))
+                grp1 = cmds.group(ctrl, name=phalange.replace(NameConvention.main, "GRP1"))
+                grp2 = cmds.group(grp1, name=phalange.replace(NameConvention.main, "GRP2"))
 
                 # Creation of Constraints
 
                 if "1" in phalange:
-                    cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", root_phalanges)
+                    cmds.parent(f"offset_{NameConvention.fk}_{finger}_0{i}_{self.side}", root_phalanges)
                     cmds.parentConstraint(ctrl, phalange, w=1, mo=1)
                 else:
                     cmds.orientConstraint(ctrl, phalange, w=1, mo=1)
-                    cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", previous_ctrl)
+                    cmds.parent(f"offset_{NameConvention.fk}_{finger}_0{i}_{self.side}", previous_ctrl)
 
                 previous_ctrl = ctrl
 
@@ -578,25 +575,25 @@ class HandClass:
         for i in range(0, 3):
 
             if i == 0:
-                phalange = f"SK_JNT_meta_{finger}_{self.side}"
+                phalange = f"{NameConvention.main}_meta_{finger}_{self.side}"
             else:
-                phalange = f"SK_JNT_{finger}_0{i}_{self.side}"
+                phalange = f"{NameConvention.main}_{finger}_0{i}_{self.side}"
 
-            ctrl = phalange.replace("SK_JNT", "CTRL_FK")
+            ctrl = phalange.replace(NameConvention.main, f"{NameConvention.controller}_{NameConvention.fk}")
 
             create_control_fk(phalange, self.side, 2)
 
             # Creates group for customs attibutes
-            grp1 = cmds.group(ctrl, name=phalange.replace("SK_JNT", "GRP1"))
-            grp2 = cmds.group(grp1, name=phalange.replace("SK_JNT", "GRP2"))
+            grp1 = cmds.group(ctrl, name=phalange.replace(NameConvention.main, "GRP1"))
+            grp2 = cmds.group(grp1, name=phalange.replace(NameConvention.main, "GRP2"))
 
             # Creation of Constraints
             if i == 0:
                 cmds.parentConstraint(ctrl, phalange, w=1, mo=1)
-                cmds.parent(f"offset_FK_meta_{finger}_{self.side}", root_phalanges)
+                cmds.parent(f"offset_{NameConvention.fk}_meta_{finger}_{self.side}", root_phalanges)
             else:
                 cmds.orientConstraint(ctrl, phalange, w=1, mo=1)
-                cmds.parent(f"offset_FK_{finger}_0{i}_{self.side}", previous_ctrl)
+                cmds.parent(f"offset_{NameConvention.fk}_{finger}_0{i}_{self.side}", previous_ctrl)
 
             previous_ctrl = ctrl
 
