@@ -1,6 +1,6 @@
 import sys
 
-DIRECTORY = r"C:\Users\manon\Documents\maya\scripts\LimbRigging"
+DIRECTORY = r"C:\Users\user\Documents\maya\maya_version\scripts\LimbRigging"
 
 sys.path.append(DIRECTORY)
 
